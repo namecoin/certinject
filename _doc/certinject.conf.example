@@ -1,0 +1,7 @@
+# list of certificates to inject into all configured trust stores
+certs = [
+"example.pem",
+"foo",
+ "./bar",
+ "/tmp/foo",
+]
