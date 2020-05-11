@@ -6,11 +6,9 @@ package main
 import (
 	"encoding/pem"
 	"io/ioutil"
-	"os"
-	"strings"
 
 	"github.com/hlandau/xlog"
-	"github.com/namecoin/ncdns/certinject"
+	"github.com/namecoin/certinject"
 	easyconfig "gopkg.in/hlandau/easyconfig.v1"
 	"gopkg.in/hlandau/easyconfig.v1/cflag"
 )
@@ -28,7 +26,7 @@ func main() {
 		ProgramName: "certinject",
 	}
 	config.ParseFatal(nil)
-	cert := strings.TrimSpace(os.ExpandEnv(certflag.Value()))
+	cert := certflag.Value()
 	if cert == "" {
 		log.Fatal("no certificate to add")
 	}
