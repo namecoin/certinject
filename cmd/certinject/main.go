@@ -13,12 +13,13 @@ import (
 	"gopkg.in/hlandau/easyconfig.v1/cflag"
 )
 
-var log, _ = xlog.New("certinject")
+var log, logp = xlog.New("certinject")
 
 func main() {
 	var (
 		flagGroup = cflag.NewGroup(nil, "certinject")
 		certflag  = cflag.String(flagGroup, "cert", "", "path to certificate to inject into trust store")
+		loglevel  = cflag.String(flagGroup, "loglevel", "info", "logging level (from least to most verbose: emergency, alert, critical, error, warn, notice, info, debug, trace")
 	)
 
 	// read config
@@ -26,6 +27,14 @@ func main() {
 		ProgramName: "certinject",
 	}
 	config.ParseFatal(nil)
+
+	level, ok := xlog.ParseSeverity(loglevel.Value())
+	if !ok {
+		log.Fatal("invalid log level, valid log levels: emergency, alert, critical, error, warn, notice, info, debug, trace")
+	}
+	certinject.Log.SetSeverity(level)
+	logp.SetSeverity(level)
+
 	cert := certflag.Value()
 	if cert == "" {
 		log.Fatal("no certificate to add")
