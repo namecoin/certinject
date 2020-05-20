@@ -1,0 +1,7 @@
+[certinject]
+# certificate to inject into all configured trust stores
+cert = "example.pem"
+
+[certstore]
+# use cryptoapi (windows only)
+cryptoapi = true
