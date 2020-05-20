@@ -1,5 +1,8 @@
 language: go
-os: windows
+
+os:
+  - linux
+  - windows
 go:
   - "1.10.x"
   - "1.11.x"
@@ -17,7 +20,9 @@ notifications:
     on_success: never
 
 script:
-  - bash testdata/travis.bash
+  - if [ "$TRAVIS_OS_NAME" = 'windows' ]; then bash testdata/travis.bash; fi
+  - go get -v -d -t ./...
+  - go test -v ./...
 
 env:
   global:
