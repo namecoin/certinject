@@ -28,10 +28,10 @@ func TestRegistryKeyNames(t *testing.T) {
 		{"enterprise+CA", "enterprise", "CA", `SOFTWARE\Microsoft\EnterpriseCertificates\CA\Certificates`, lm},
 		{"enterprise+My", "enterprise", "My", `SOFTWARE\Microsoft\EnterpriseCertificates\My\Certificates`, lm},
 		{"enterprise+Trust", "enterprise", "Trust", `SOFTWARE\Microsoft\EnterpriseCertificates\Trust\Certificates`, lm},
-		{"group+root", "group-policy", "Root", `SOFTWARE\Policy\Microsoft\SystemCertificates\Root\Certificates`, lm},
-		{"group+CA", "group-policy", "CA", `SOFTWARE\Policy\Microsoft\SystemCertificates\CA\Certificates`, lm},
-		{"group+My", "group-policy", "My", `SOFTWARE\Policy\Microsoft\SystemCertificates\My\Certificates`, lm},
-		{"group+Trust", "group-policy", "Trust", `SOFTWARE\Policy\Microsoft\SystemCertificates\Trust\Certificates`, lm},
+		{"group+root", "group-policy", "Root", `SOFTWARE\Policies\Microsoft\SystemCertificates\Root\Certificates`, lm},
+		{"group+CA", "group-policy", "CA", `SOFTWARE\Policies\Microsoft\SystemCertificates\CA\Certificates`, lm},
+		{"group+My", "group-policy", "My", `SOFTWARE\Policies\Microsoft\SystemCertificates\My\Certificates`, lm},
+		{"group+Trust", "group-policy", "Trust", `SOFTWARE\Policies\Microsoft\SystemCertificates\Trust\Certificates`, lm},
 	}
 	for _, tc := range tests {
 		store, ok := cryptoApiStores[tc.Physical]
