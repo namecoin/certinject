@@ -12,7 +12,7 @@ func TestRegistryKeyNames(t *testing.T) {
 	tests := []struct {
 		Name     string // for logs
 		Physical string // from user flag
-		Logical  string // from userflag
+		Logical  string // from user flag
 		Key      string // registry
 		Base     registry.Key
 	}{
@@ -20,6 +20,7 @@ func TestRegistryKeyNames(t *testing.T) {
 		{"system+CA", "system", "CA", `SOFTWARE\Microsoft\SystemCertificates\CA\Certificates`, lm},
 		{"system+My", "system", "My", `SOFTWARE\Microsoft\SystemCertificates\My\Certificates`, lm},
 		{"system+Trust", "system", "Trust", `SOFTWARE\Microsoft\SystemCertificates\Trust\Certificates`, lm},
+		{"system+Disallowed", "system", "Disallowed", `SOFTWARE\Microsoft\SystemCertificates\Disallowed\Certificates`, lm},
 		{"user+root", "current-user", "Root", `SOFTWARE\Microsoft\SystemCertificates\Root\Certificates`, cu},
 		{"user+CA", "current-user", "CA", `SOFTWARE\Microsoft\SystemCertificates\CA\Certificates`, cu},
 		{"user+My", "current-user", "My", `SOFTWARE\Microsoft\SystemCertificates\My\Certificates`, cu},
