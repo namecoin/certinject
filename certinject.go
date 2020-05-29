@@ -15,7 +15,7 @@ var (
 		"600) may cause TLS errors.")
 )
 
-// SetLogLevel allows an application to set a log level
+// SetLogLevel allows an application to set a log level.
 func SetLogLevel(level xlog.Severity) {
 	logp.SetSeverity(level)
 }

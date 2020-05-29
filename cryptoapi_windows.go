@@ -1,7 +1,7 @@
 package certinject
 
 import (
-	"crypto/sha1"
+	"crypto/sha1" // #nosec G505
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -138,7 +138,7 @@ func injectCertCryptoApi(derBytes []byte) {
 	// Windows CryptoAPI uses the SHA-1 fingerprint to identify a cert.
 	// This is probably a Bad Thing (TM) since SHA-1 is weak.
 	// However, that's Microsoft's problem to fix, not ours.
-	fingerprint := sha1.Sum(derBytes)
+	fingerprint := sha1.Sum(derBytes) // #nosec G401
 
 	// Windows CryptoAPI uses a hex string to represent the fingerprint.
 	fingerprintHex := hex.EncodeToString(fingerprint[:])
@@ -159,9 +159,12 @@ func injectCertCryptoApi(derBytes []byte) {
 
 	// Add a magic value which indicates that the certificate is a
 	// Namecoin cert.  This will be used for deleting expired certs.
-	// However, we have to delete it before we create it, so that we make sure that the "last modified" metadata gets updated.
-	// If an error occurs during deletion, we ignore it, since it probably just means it wasn't there already.
+	// However, we have to delete it before we create it,
+	// so that we make sure that the "last modified" metadata gets updated.
+	// If an error occurs during deletion, we ignore it,
+	// since it probably just means it wasn't there already.
 	_ = certKey.DeleteValue(cryptoApiMagicName)
+
 	err = certKey.SetDWordValue(cryptoApiMagicName, cryptoApiMagicValue)
 	if err != nil {
 		log.Errorf("Couldn't set magic registry value for certificate: %s", err)
@@ -174,7 +177,6 @@ func injectCertCryptoApi(derBytes []byte) {
 		log.Errorf("Couldn't set blob registry value for certificate: %s", err)
 		return
 	}
-
 }
 
 func cleanCertsCryptoApi() {
@@ -203,7 +205,6 @@ func cleanCertsCryptoApi() {
 
 	// for all certs in the cert store
 	for _, subKeyName := range subKeys {
-
 		// Check if the cert is expired
 		expired, err := checkCertExpiredCryptoApi(certStoreKey, subKeyName)
 		if err != nil {
@@ -213,15 +214,14 @@ func cleanCertsCryptoApi() {
 
 		// delete the cert if it's expired
 		if expired {
-			registry.DeleteKey(certStoreKey, subKeyName)
+			if err := registry.DeleteKey(certStoreKey, subKeyName); err != nil {
+				log.Errorf("Coudn't delete expired cert: %s", err)
+			}
 		}
-
 	}
-
 }
 
 func checkCertExpiredCryptoApi(certStoreKey registry.Key, subKeyName string) (bool, error) {
-
 	// Open the cert
 	certKey, err := registry.OpenKey(certStoreKey, subKeyName, registry.ALL_ACCESS)
 	if err != nil {
@@ -235,6 +235,7 @@ func checkCertExpiredCryptoApi(certStoreKey registry.Key, subKeyName string) (bo
 		// Magic value wasn't found.  Therefore don't consider it expired.
 		return false, nil
 	}
+
 	if isNamecoin != cryptoApiMagicValue {
 		// Magic value was found but it wasn't the one we recognize.  Therefore don't consider it expired.
 		return false, nil
@@ -249,7 +250,8 @@ func checkCertExpiredCryptoApi(certStoreKey registry.Key, subKeyName string) (bo
 	// Get the last modified time
 	certKeyModTime := certKeyInfo.ModTime()
 
-	// If the cert's last modified timestamp differs too much from the current time in either direction, consider it expired
+	// If the cert's last modified timestamp differs too much from the
+	// current time in either direction, consider it expired
 	expired := math.Abs(time.Since(certKeyModTime).Seconds()) > float64(certExpirePeriod.Value())
 
 	return expired, nil
