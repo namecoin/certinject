@@ -24,15 +24,24 @@ jobs:
     - stage: lint
   include:
     - os: linux
+      stage: lint-new
+      language: go
+      go: "1.14.x"
+      script:
+        # lint new changes
+        - go get -v -d -t ./...
+        - bash testdata/golangci-linter.bash --new-from-rev=HEAD~ # new changes
+    - os: linux
       stage: lint
       language: go
       go: "1.14.x"
       script:
         # lint stage
         - go get -v -d -t ./...
-        - bash testdata/golangci-linter.bash
+        - bash testdata/golangci-linter.bash # all, allowed to fail
 
 stages:
+  - lint-new
   - lint
   - test
 
