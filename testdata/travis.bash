@@ -1,15 +1,24 @@
 #!/bin/bash
 set -ex
 
-# workaround for go1.10's no module support, we copy this run's source code into namecoin/certinject
-if [ "$TRAVIS_REPO_SLUG" != "namecoin/certinject" ] && [ "$TRAVIS_GO_VERSION" = "1.10.x" ]; then
+# set GOPATH if empty (travis sets it, but useful for humans)
+if [ -z "$GOPATH" ]; then
+export GOPATH=$(go env GOPATH)
+fi
+
+# workaround for go1.10's no module support, we copy this run's source code
+# into $GOPATH/src/github.com/namecoin/certinject to avoid downloading our master branch.
+#
+# this only affects forks running travis runs. ( Pull requests and autobuilds
+# will clone into: PWD=/c/Users/travis/gopath/src/github.com/namecoin/certinject )
+if [ "$TRAVIS_GO_VERSION" = "1.10.x" ] && [ ! -d $GOPATH/src/github.com/namecoin/certinject ]; then
   mkdir $GOPATH/src/github.com/namecoin && \
-  cp -av . $GOPATH/src/github.com/namecoin/certinject && \
+  cp -av $PWD $GOPATH/src/github.com/namecoin/certinject && \
   cd $GOPATH/src/github.com/namecoin/certinject
 fi
 
 echo Fetching dependencies
-go get -v -u -t ./...
+go get -v -t ./...
 
 echo Building certinject.exe
 go build -o certinject.exe ./cmd/certinject
