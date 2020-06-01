@@ -19,7 +19,8 @@ func main() {
 	var (
 		flagGroup = cflag.NewGroup(nil, "certinject")
 		certflag  = cflag.String(flagGroup, "cert", "", "path to certificate to inject into trust store")
-		loglevel  = cflag.String(flagGroup, "loglevel", "info", "logging level (from least to most verbose: emergency, alert, critical, error, warn, notice, info, debug, trace")
+		loglevel  = cflag.String(flagGroup, "loglevel", "info",
+			"logging level (from least to most verbose: emergency, alert, critical, error, warn, notice, info, debug, trace")
 	)
 
 	// read config
@@ -32,22 +33,28 @@ func main() {
 	if !ok {
 		log.Fatal("invalid log level, valid log levels: emergency, alert, critical, error, warn, notice, info, debug, trace")
 	}
-	certinject.Log.SetSeverity(level)
+
+	certinject.SetLogLevel(level)
 	logp.SetSeverity(level)
 
 	cert := certflag.Value()
 	if cert == "" {
 		log.Fatal("no certificate to add")
 	}
+
 	log.Debugf("reading certificate: %q", cert)
+
 	b, err := ioutil.ReadFile(cert)
 	if err != nil {
 		log.Fatale(err, "error reading certificate")
 	}
+
 	if p, err := pem.Decode(b); err == nil {
-		log.Debugf("user provided PEM encoded certificate, extracting DER bytes")
 		b = p.Bytes
+
+		log.Debugf("user provided PEM encoded certificate, extracting DER bytes")
 	}
+
 	certinject.InjectCert(b)
 	log.Debugf("injected certificate: %q", cert)
 }
