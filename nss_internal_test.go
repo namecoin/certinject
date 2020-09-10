@@ -21,7 +21,7 @@ func TestCheckCertExpired(t *testing.T) {
 		t.Errorf("Error getting file info 1: %s", err)
 	}
 
-	expired1, err := checkCertExpiredNss(info1)
+	expired1, err := checkCertExpiredNSS(info1)
 	if err != nil {
 		t.Errorf("Error checking if file info 1 expired: %s", err)
 	}
@@ -37,7 +37,7 @@ func TestCheckCertExpired(t *testing.T) {
 		t.Errorf("Error getting file info 2: %s", err)
 	}
 
-	expired2, err := checkCertExpiredNss(info2)
+	expired2, err := checkCertExpiredNSS(info2)
 	if err != nil {
 		t.Errorf("Error checking if file info 2 expired: %s", err)
 	}

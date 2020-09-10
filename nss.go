@@ -19,7 +19,7 @@ var certDir = cflag.String(flagGroup, "nsscertdir", "", "Directory to store "+
 var nssDir = cflag.String(flagGroup, "nssdbdir", "", "Directory that "+
 	"contains NSS's cert9.db.  (Required if nss is set.)")
 
-func injectCertNss(derBytes []byte) {
+func injectCertNSS(derBytes []byte) {
 	if certDir.Value() == "" {
 		log.Fatal("Empty nsscertdir configuration.")
 	}
@@ -36,7 +36,7 @@ func injectCertNss(derBytes []byte) {
 
 	injectCertFile(derBytes, path)
 
-	nickname := nicknameFromFingerprintHexNss(fingerprintHex)
+	nickname := nicknameFromFingerprintHexNSS(fingerprintHex)
 
 	// TODO: check whether we can replace CP with just P.
 	cmd := exec.Command(nssCertutilName, "-d", "sql:"+nssDir.Value(), "-A",
@@ -47,14 +47,14 @@ func injectCertNss(derBytes []byte) {
 		if strings.Contains(string(stdoutStderr), "SEC_ERROR_PKCS11_GENERAL_ERROR") {
 			log.Warn("Temporary SEC_ERROR_PKCS11_GENERAL_ERROR injecting certificate to NSS database; retrying in 1ms...")
 			time.Sleep(1 * time.Millisecond)
-			injectCertNss(derBytes)
+			injectCertNSS(derBytes)
 		} else {
 			log.Errorf("Error injecting cert to NSS database: %s\n%s", err, stdoutStderr)
 		}
 	}
 }
 
-func cleanCertsNss() {
+func cleanCertsNSS() {
 	if certDir.Value() == "" {
 		log.Fatal("Empty nsscertdir configuration.")
 	}
@@ -71,7 +71,7 @@ func cleanCertsNss() {
 	// for all Namecoin certs in the folder
 	for _, f := range certFiles {
 		// Check if the cert is expired
-		expired, err := checkCertExpiredNss(f)
+		expired, err := checkCertExpiredNSS(f)
 		if err != nil {
 			log.Fatalf("Error checking if NSS cert is expired: %s", err)
 		}
@@ -83,7 +83,7 @@ func cleanCertsNss() {
 			fingerprintHex := strings.Replace(filename, ".pem", "",
 				-1)
 
-			nickname := nicknameFromFingerprintHexNss(
+			nickname := nicknameFromFingerprintHexNSS(
 				fingerprintHex)
 
 			// Delete the cert from NSS
@@ -100,7 +100,7 @@ func cleanCertsNss() {
 			case strings.Contains(string(stdoutStderr), "SEC_ERROR_PKCS11_GENERAL_ERROR"):
 				log.Warn("Temporary SEC_ERROR_PKCS11_GENERAL_ERROR deleting certificate from NSS database; retrying in 1ms...")
 				time.Sleep(1 * time.Millisecond)
-				cleanCertsNss()
+				cleanCertsNSS()
 			default:
 				log.Fatalf("Error deleting cert from NSS database: %s\n%s", err, stdoutStderr)
 			}
@@ -114,7 +114,7 @@ func cleanCertsNss() {
 	}
 }
 
-func checkCertExpiredNss(certFile os.FileInfo) (bool, error) {
+func checkCertExpiredNSS(certFile os.FileInfo) (bool, error) {
 	// Get the last modified time
 	certFileModTime := certFile.ModTime()
 
@@ -130,6 +130,6 @@ func checkCertExpiredNss(certFile os.FileInfo) (bool, error) {
 	return expired, nil
 }
 
-func nicknameFromFingerprintHexNss(fingerprintHex string) string {
+func nicknameFromFingerprintHexNSS(fingerprintHex string) string {
 	return "Namecoin-" + fingerprintHex
 }

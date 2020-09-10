@@ -35,12 +35,12 @@ func TestRegistryKeyNames(t *testing.T) {
 		{"group+Trust", "group-policy", "Trust", `SOFTWARE\Policies\Microsoft\SystemCertificates\Trust\Certificates`, lm},
 	}
 	for _, tc := range tests {
-		store, ok := cryptoApiStores[tc.Physical]
+		store, ok := cryptoAPIStores[tc.Physical]
 		if !ok {
 			t.Errorf("test %q is invalid (store not defined)", tc.Physical)
 			continue
 		}
-		if err := cryptoApiFlagLogicalStoreName.CfSetValue(tc.Logical); err != nil {
+		if err := cryptoAPIFlagLogicalStoreName.CfSetValue(tc.Logical); err != nil {
 			t.Errorf("test %q: %v", tc.Name, err)
 			continue
 		}
