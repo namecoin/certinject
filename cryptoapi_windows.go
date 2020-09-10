@@ -10,6 +10,8 @@ import (
 
 	"golang.org/x/sys/windows/registry"
 	"gopkg.in/hlandau/easyconfig.v1/cflag"
+
+	"github.com/namecoin/certinject/certblob"
 )
 
 var (
@@ -111,21 +113,15 @@ func injectCertCryptoApi(derBytes []byte) {
 	// Windows will happily regenerate all the others for you, whenever you actually try to use the certificate.
 	// How cool is that?
 
-	// Length of cert
-	certLength := len(derBytes)
-
-	// Header for a stripped Windows Certificate Registry Blob
-	certBlobHeader := []byte{
-		0:  0x20,
-		4:  0x01,
-		8:  byte((certLength >> 0) & 0xFF),
-		9:  byte((certLength >> 8) & 0xFF),
-		10: byte((certLength >> 16) & 0xFF),
-		11: byte((certLength >> 24) & 0xFF),
-	}
+	// Construct the Property
+	certProp := certblob.Property{ID: 0x20, Value: derBytes}
 
 	// Construct the Blob
-	certBlob := append(certBlobHeader, derBytes...)
+	certBlob, err := certProp.Marshal()
+	if err != nil {
+		log.Errorf("Couldn't marshal cert property: %s", err)
+		return
+	}
 
 	// Open up the cert store.
 	certStoreKey, err := registry.OpenKey(registryBase, storeKey, registry.ALL_ACCESS)
