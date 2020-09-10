@@ -10,7 +10,7 @@ package certinject
 func InjectCert(derBytes []byte) {
 
 	if nssFlag.Value() {
-		injectCertNss(derBytes)
+		injectCertNSS(derBytes)
 	}
 }
 
@@ -18,7 +18,7 @@ func InjectCert(derBytes []byte) {
 func CleanCerts() {
 
 	if nssFlag.Value() {
-		cleanCertsNss()
+		cleanCertsNSS()
 	}
 
 }
