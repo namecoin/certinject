@@ -34,18 +34,20 @@ func TestRegistryKeyNames(t *testing.T) {
 		{"group+My", "group-policy", "My", `SOFTWARE\Policies\Microsoft\SystemCertificates\My\Certificates`, lm},
 		{"group+Trust", "group-policy", "Trust", `SOFTWARE\Policies\Microsoft\SystemCertificates\Trust\Certificates`, lm},
 	}
+
 	for _, tc := range tests {
 		store, ok := cryptoAPIStores[tc.Physical]
 		if !ok {
 			t.Errorf("test %q is invalid (store not defined)", tc.Physical)
 			continue
 		}
+
 		if err := cryptoAPIFlagLogicalStoreName.CfSetValue(tc.Logical); err != nil {
 			t.Errorf("test %q: %v", tc.Name, err)
 			continue
 		}
+
 		key := store.Key()
-		base := store.Base
 		if key != tc.Key {
 			t.Errorf("test %q: expected key to be %q, got %q", tc.Name, tc.Key, key)
 			continue
@@ -60,13 +62,17 @@ func TestRegistryKeyNames(t *testing.T) {
 			default:
 				t.Errorf("expected valid registry key, got: %v", r)
 				t.FailNow()
+
 				return ""
 			}
 		}
+
+		base := store.Base
 		if base != tc.Base {
 			t.Errorf("test %q: expected base to be %v, got %v", tc.Name, base2str(t, tc.Base), base2str(t, base))
 			continue
 		}
+
 		t.Logf("[PASS] test %q: %s\\%s", tc.Name, base2str(t, base), key)
 	}
 }
