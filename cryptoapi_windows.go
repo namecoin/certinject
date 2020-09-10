@@ -37,19 +37,19 @@ var (
 	}
 )
 
-// Store is used to generate a key to open a certificate store in the Windows Registry
+// Store is used to generate a registry key to open a certificate store in the Windows Registry.
 type Store struct {
 	Base     registry.Key
 	Physical string
 	Logical  string // may contain a %s, in which it would be replaced by the -store flag
 }
 
-// String human readable string, only useful for debug logs
+// String returns a human readable string (only useful for debug logs).
 func (s Store) String() string {
 	return fmt.Sprintf(`%s\%s\`+s.Logical, s.Base, s.Physical, cryptoApiFlagLogicalStoreName.Value())
 }
 
-// Key generates the registry key for use in opening the store
+// Key generates the registry key for use in opening the store.
 func (s Store) Key() string {
 	return fmt.Sprintf(`%s\`+s.Logical, s.Physical, cryptoApiFlagLogicalStoreName.Value())
 }
