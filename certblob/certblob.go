@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sort"
 )
 
 //nolint:lll
@@ -38,6 +39,49 @@ func (prop *Property) Marshal() ([]byte, error) {
 
 	// Append value
 	result = append(result, prop.Value...)
+
+	return result, nil
+}
+
+type Blob map[uint32][]byte
+
+// We sort the ID's so that we get a deterministic Marshaling.
+func (b Blob) sortedIDs() []uint32 {
+	propIDs := make([]uint32, 0, len(b))
+	for id := range b {
+		propIDs = append(propIDs, id)
+	}
+
+	sort.Slice(propIDs, func(i, j int) bool { return propIDs[i] < propIDs[j] })
+
+	return propIDs
+}
+
+func (b Blob) Marshal() ([]byte, error) {
+	propIDs := b.sortedIDs()
+
+	result := make([]byte, 0)
+
+	var (
+		singleProperty       Property
+		resultSingleProperty []byte
+		err                  error
+	)
+
+	// Iterate through the sorted ID's
+	for _, id := range propIDs {
+		// Construct a Property
+		singleProperty = Property{ID: id, Value: b[id]}
+
+		// Marshal the Property
+		resultSingleProperty, err = singleProperty.Marshal()
+		if err != nil {
+			return nil, fmt.Errorf("ID %d: %w", id, err)
+		}
+
+		// Append the Property's bytes to the result
+		result = append(result, resultSingleProperty...)
+	}
 
 	return result, nil
 }

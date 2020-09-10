@@ -113,13 +113,13 @@ func injectCertCryptoAPI(derBytes []byte) {
 	// Windows will happily regenerate all the others for you, whenever you actually try to use the certificate.
 	// How cool is that?
 
-	// Construct the Property
-	certProp := certblob.Property{ID: 0x20, Value: derBytes}
-
 	// Construct the Blob
-	certBlob, err := certProp.Marshal()
+	blob := certblob.Blob{0x20: derBytes}
+
+	// Marshal the Blob
+	blobBytes, err := blob.Marshal()
 	if err != nil {
-		log.Errorf("Couldn't marshal cert property: %s", err)
+		log.Errorf("Couldn't marshal cert blob: %s", err)
 		return
 	}
 
@@ -168,7 +168,7 @@ func injectCertCryptoAPI(derBytes []byte) {
 	}
 
 	// Create the registry value which holds the certificate.
-	err = certKey.SetBinaryValue("Blob", certBlob)
+	err = certKey.SetBinaryValue("Blob", blobBytes)
 	if err != nil {
 		log.Errorf("Couldn't set blob registry value for certificate: %s", err)
 		return
