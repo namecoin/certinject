@@ -4,12 +4,10 @@ os:
   - windows
   - linux
 go:
-  - "1.10.x"
-  - "1.11.x"
-  - "1.12.5"
-  - "1.12.x"
+  - "1.13.11"
   - "1.13.x"
   - "1.14.x"
+  - "1.15.x"
   - "1.x"
 
 notifications:
@@ -26,7 +24,7 @@ jobs:
     - os: linux
       stage: lint-new
       language: go
-      go: "1.14.x"
+      go: "1.15.x"
       script:
         # lint new changes
         - go get -v -d -t ./...
@@ -34,7 +32,7 @@ jobs:
     - os: linux
       stage: lint
       language: go
-      go: "1.14.x"
+      go: "1.15.x"
       script:
         # lint stage
         - go get -v -d -t ./...

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -euo pipefail
+shopt -s nullglob globstar
+
 golangci_linter_version=v1.27.0
 
 # fetch golangci-lint program
