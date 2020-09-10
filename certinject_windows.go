@@ -9,7 +9,7 @@ import (
 // Currently only supports Windows CryptoAPI and NSS sqlite3 stores.
 
 var (
-	cryptoApiFlag = cflag.Bool(flagGroup, "cryptoapi", false,
+	cryptoAPIFlag = cflag.Bool(flagGroup, "cryptoapi", false,
 		"Synchronize TLS certs to the CryptoAPI trust store?  This "+
 			"enables HTTPS to work with Chromium/Chrome.  Only "+
 			"use if you've set up NUMS HPKP in Chromium/Chrome "+
@@ -21,22 +21,22 @@ var (
 
 // InjectCert injects the given cert into all configured trust stores.
 func InjectCert(derBytes []byte) {
-	if cryptoApiFlag.Value() {
-		injectCertCryptoApi(derBytes)
+	if cryptoAPIFlag.Value() {
+		injectCertCryptoAPI(derBytes)
 	}
 
 	if nssFlag.Value() {
-		injectCertNss(derBytes)
+		injectCertNSS(derBytes)
 	}
 }
 
 // CleanCerts cleans expired certs from all configured trust stores.
 func CleanCerts() {
-	if cryptoApiFlag.Value() {
-		cleanCertsCryptoApi()
+	if cryptoAPIFlag.Value() {
+		cleanCertsCryptoAPI()
 	}
 
 	if nssFlag.Value() {
-		cleanCertsNss()
+		cleanCertsNSS()
 	}
 }
