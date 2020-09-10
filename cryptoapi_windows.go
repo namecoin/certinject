@@ -60,6 +60,7 @@ func cryptoAPINameToStore(name string) (Store, error) {
 	if !ok {
 		return Store{}, fmt.Errorf("invalid choice for physical store, consider: current-user, system, enterprise, group-policy")
 	}
+
 	return store, nil
 }
 
@@ -69,6 +70,7 @@ func injectCertCryptoAPI(derBytes []byte) {
 		log.Errorf("error: %s", err.Error())
 		return
 	}
+
 	registryBase := store.Base
 	storeKey := store.Key()
 
@@ -181,6 +183,7 @@ func cleanCertsCryptoAPI() {
 		log.Errorf("error: %s", err.Error())
 		return
 	}
+
 	registryBase := store.Base
 	storeKey := store.Key()
 
