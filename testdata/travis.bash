@@ -14,7 +14,7 @@ fi
 # will clone into: PWD=/c/Users/travis/gopath/src/github.com/namecoin/certinject )
 if [ "$TRAVIS_GO_VERSION" = "1.10.x" ] && [ ! -d "$GOPATH"/src/github.com/namecoin/certinject ]; then
   mkdir "$GOPATH"/src/github.com/namecoin && \
-  cp -av $PWD "$GOPATH"/src/github.com/namecoin/certinject && \
+  cp -av "$PWD" "$GOPATH"/src/github.com/namecoin/certinject && \
   cd "$GOPATH"/src/github.com/namecoin/certinject
 fi
 
