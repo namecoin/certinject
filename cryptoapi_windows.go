@@ -2,9 +2,11 @@ package certinject
 
 import (
 	"crypto/sha1" // #nosec G505
+	"crypto/x509"
 	"encoding/hex"
 	"fmt"
 	"math"
+	"net"
 	"strings"
 	"time"
 
@@ -20,6 +22,47 @@ var (
 		"Name of CryptoAPI logical store to inject certificate into. Consider: Root, Trust, CA, My, Disallowed")
 	cryptoAPIFlagPhysicalStoreName = cflag.String(cryptoAPIFlagGroup, "physical-store", "system",
 		"Scope of CryptoAPI certificate store. Valid choices: current-user, system, enterprise, group-policy")
+	ekuFlagGroup = cflag.NewGroup(cryptoAPIFlagGroup, "eku")
+	ekuAny       = cflag.Bool(ekuFlagGroup, "any", false, "Any purpose")
+	ekuServer    = cflag.Bool(ekuFlagGroup, "server", false,
+		"Server authentication")
+	ekuClient = cflag.Bool(ekuFlagGroup, "client", false,
+		"Client authentication")
+	ekuCode  = cflag.Bool(ekuFlagGroup, "code", false, "Code signing")
+	ekuEmail = cflag.Bool(ekuFlagGroup, "email", false,
+		"Secure email")
+	ekuIPSECEndSystem = cflag.Bool(ekuFlagGroup, "ipsec-end-system", false,
+		"IP security end system")
+	ekuIPSECTunnel = cflag.Bool(ekuFlagGroup, "ipsec-tunnel", false,
+		"IP security tunnel termination")
+	ekuIPSECUser = cflag.Bool(ekuFlagGroup, "ipsec-user", false,
+		"IP security user")
+	ekuTime = cflag.Bool(ekuFlagGroup, "time", false, "Time stamping")
+	ekuOCSP = cflag.Bool(ekuFlagGroup, "ocsp", false, "OCSP signing")
+	// We intentionally do not support "server-gated crypto" / "international
+	// step-up" EKU values, because 90's-era export-grade crypto can go shove
+	// its reproductive organs in a beehive.
+	ekuMSCodeCom = cflag.Bool(ekuFlagGroup, "ms-code-com", false,
+		"Microsoft commercial code signing")
+	ekuMSCodeKernel = cflag.Bool(ekuFlagGroup, "ms-code-kernel", false,
+		"Microsoft kernel-mode code signing")
+	nameConstraintsFlagGroup    = cflag.NewGroup(cryptoAPIFlagGroup, "nc")
+	nameConstraintsPermittedDNS = cflag.String(nameConstraintsFlagGroup,
+		"permitted-dns", "", "Permitted DNS domain")
+	nameConstraintsExcludedDNS = cflag.String(nameConstraintsFlagGroup,
+		"excluded-dns", "", "Excluded DNS domain")
+	nameConstraintsPermittedIP = cflag.String(nameConstraintsFlagGroup,
+		"permitted-ip", "", "Permitted IP range")
+	nameConstraintsExcludedIP = cflag.String(nameConstraintsFlagGroup,
+		"excluded-ip", "", "Excluded IP range")
+	nameConstraintsPermittedEmail = cflag.String(nameConstraintsFlagGroup,
+		"permitted-email", "", "Permitted email address")
+	nameConstraintsExcludedEmail = cflag.String(nameConstraintsFlagGroup,
+		"excluded-email", "", "Excluded email address")
+	nameConstraintsPermittedURI = cflag.String(nameConstraintsFlagGroup,
+		"permitted-uri", "", "Permitted URI domain")
+	nameConstraintsExcludedURI = cflag.String(nameConstraintsFlagGroup,
+		"excluded-uri", "", "Excluded URI domain")
 )
 
 const cryptoAPIMagicName = "Namecoin"
@@ -116,7 +159,136 @@ func injectCertCryptoAPI(derBytes []byte) {
 	// How cool is that?
 
 	// Construct the Blob
-	blob := certblob.Blob{0x20: derBytes}
+	blob := certblob.Blob{certblob.CertContentCertPropID: derBytes}
+
+	ekus := []x509.ExtKeyUsage{}
+
+	if ekuAny.Value() {
+		ekus = append(ekus, x509.ExtKeyUsageAny)
+	}
+
+	if ekuServer.Value() {
+		ekus = append(ekus, x509.ExtKeyUsageServerAuth)
+	}
+
+	if ekuClient.Value() {
+		ekus = append(ekus, x509.ExtKeyUsageClientAuth)
+	}
+
+	if ekuCode.Value() {
+		ekus = append(ekus, x509.ExtKeyUsageCodeSigning)
+	}
+
+	if ekuEmail.Value() {
+		ekus = append(ekus, x509.ExtKeyUsageEmailProtection)
+	}
+
+	if ekuIPSECEndSystem.Value() {
+		ekus = append(ekus, x509.ExtKeyUsageIPSECEndSystem)
+	}
+
+	if ekuIPSECTunnel.Value() {
+		ekus = append(ekus, x509.ExtKeyUsageIPSECTunnel)
+	}
+
+	if ekuIPSECUser.Value() {
+		ekus = append(ekus, x509.ExtKeyUsageIPSECUser)
+	}
+
+	if ekuTime.Value() {
+		ekus = append(ekus, x509.ExtKeyUsageTimeStamping)
+	}
+
+	if ekuOCSP.Value() {
+		ekus = append(ekus, x509.ExtKeyUsageOCSPSigning)
+	}
+
+	if ekuMSCodeCom.Value() {
+		ekus = append(ekus, x509.ExtKeyUsageMicrosoftCommercialCodeSigning)
+	}
+
+	if ekuMSCodeKernel.Value() {
+		ekus = append(ekus, x509.ExtKeyUsageMicrosoftKernelCodeSigning)
+	}
+
+	if len(ekus) > 0 {
+		ekuTemplate := x509.Certificate{
+			ExtKeyUsage: ekus,
+		}
+
+		ekuProperty, err := certblob.BuildExtKeyUsage(&ekuTemplate)
+		if err != nil {
+			log.Errorf("Couldn't marshal extended key usage property: %s", err)
+			return
+		}
+
+		blob.SetProperty(ekuProperty)
+	}
+
+	nameConstraintsValid := false
+	nameConstraintsTemplate := x509.Certificate{}
+
+	if nameConstraintsPermittedDNS.Value() != "" {
+		nameConstraintsTemplate.PermittedDNSDomains = []string{nameConstraintsPermittedDNS.Value()}
+		nameConstraintsValid = true
+	}
+
+	if nameConstraintsExcludedDNS.Value() != "" {
+		nameConstraintsTemplate.ExcludedDNSDomains = []string{nameConstraintsExcludedDNS.Value()}
+		nameConstraintsValid = true
+	}
+
+	if nameConstraintsPermittedIP.Value() != "" {
+		_, nameConstraintsPermittedIPNet, err := net.ParseCIDR(nameConstraintsPermittedIP.Value())
+		if err != nil {
+			log.Errorf("Couldn't parse permitted IP CIDR: %s", err)
+			return
+		}
+
+		nameConstraintsTemplate.PermittedIPRanges = []*net.IPNet{nameConstraintsPermittedIPNet}
+		nameConstraintsValid = true
+	}
+
+	if nameConstraintsExcludedIP.Value() != "" {
+		_, nameConstraintsExcludedIPNet, err := net.ParseCIDR(nameConstraintsExcludedIP.Value())
+		if err != nil {
+			log.Errorf("Couldn't parse excluded IP CIDR: %s", err)
+			return
+		}
+
+		nameConstraintsTemplate.ExcludedIPRanges = []*net.IPNet{nameConstraintsExcludedIPNet}
+		nameConstraintsValid = true
+	}
+
+	if nameConstraintsPermittedEmail.Value() != "" {
+		nameConstraintsTemplate.PermittedEmailAddresses = []string{nameConstraintsPermittedEmail.Value()}
+		nameConstraintsValid = true
+	}
+
+	if nameConstraintsExcludedEmail.Value() != "" {
+		nameConstraintsTemplate.ExcludedEmailAddresses = []string{nameConstraintsExcludedEmail.Value()}
+		nameConstraintsValid = true
+	}
+
+	if nameConstraintsPermittedURI.Value() != "" {
+		nameConstraintsTemplate.PermittedURIDomains = []string{nameConstraintsPermittedURI.Value()}
+		nameConstraintsValid = true
+	}
+
+	if nameConstraintsExcludedURI.Value() != "" {
+		nameConstraintsTemplate.ExcludedURIDomains = []string{nameConstraintsExcludedURI.Value()}
+		nameConstraintsValid = true
+	}
+
+	if nameConstraintsValid {
+		nameConstraintsProperty, err := certblob.BuildNameConstraints(&nameConstraintsTemplate)
+		if err != nil {
+			log.Errorf("Couldn't marshal name constraints property: %s", err)
+			return
+		}
+
+		blob.SetProperty(nameConstraintsProperty)
+	}
 
 	// Marshal the Blob
 	blobBytes, err := blob.Marshal()

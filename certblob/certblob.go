@@ -1,11 +1,16 @@
+//go:generate bash generate.sh
+
 package certblob
 
 import (
+	"crypto/x509"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
 	"sort"
+
+	"github.com/namecoin/certinject/x509ext"
 )
 
 //nolint:lll
@@ -16,9 +21,18 @@ type Property struct {
 	Value []byte
 }
 
+// These property ID's are from comments in ReactOS wincrypt.h.
+const (
+	CertContentCertPropID = 32
+	CertContentCRLPropID  = 33
+	CertContentCTLPropID  = 34
+)
+
 const propReserved = 1
 
-var ErrPropertyMarshal = errors.New("error marshaling CryptoAPI blob property")
+var ErrProperty = errors.New("CryptoAPI blob property")
+var ErrPropertyBuild = fmt.Errorf("error building: %w", ErrProperty)
+var ErrPropertyMarshal = fmt.Errorf("error marshaling: %w", ErrProperty)
 var ErrPropertyInvalidValue = fmt.Errorf("invalid Value: %w", ErrPropertyMarshal)
 
 func (prop *Property) Marshal() ([]byte, error) {
@@ -43,7 +57,35 @@ func (prop *Property) Marshal() ([]byte, error) {
 	return result, nil
 }
 
+func BuildExtKeyUsage(template *x509.Certificate) (*Property, error) {
+	value, err := x509ext.BuildExtKeyUsage(template)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", err, ErrPropertyBuild)
+	}
+
+	return &Property{
+		ID:    CertEnhkeyUsagePropID,
+		Value: value,
+	}, nil
+}
+
+func BuildNameConstraints(template *x509.Certificate) (*Property, error) {
+	value, err := x509ext.BuildNameConstraints(template)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", err, ErrPropertyBuild)
+	}
+
+	return &Property{
+		ID:    CertRootProgramNameConstraintsPropID,
+		Value: value,
+	}, nil
+}
+
 type Blob map[uint32][]byte
+
+func (b Blob) SetProperty(prop *Property) {
+	b[prop.ID] = prop.Value
+}
 
 // We sort the ID's so that we get a deterministic Marshaling.
 func (b Blob) sortedIDs() []uint32 {
