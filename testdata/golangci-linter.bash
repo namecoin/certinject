@@ -26,13 +26,13 @@ echo ----- Windows -----
 GOOS=windows "$(go env GOPATH)"/bin/golangci-lint run --no-config --enable-all \
   --color always \
   --disable gochecknoglobals,gomnd \
-  -v $@ \
+  -v "$@" \
   ./...
 
 echo ----- Linux -----
 GOOS=linux "$(go env GOPATH)"/bin/golangci-lint run --no-config --enable-all \
   --color always \
   --disable gochecknoglobals,gomnd \
-  -v $@ \
+  -v "$@" \
   ./...
 
