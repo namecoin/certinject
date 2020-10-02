@@ -3,7 +3,8 @@ set -ex
 
 # set GOPATH if empty (travis sets it, but useful for humans)
 if [ -z "$GOPATH" ]; then
-export GOPATH=$(go env GOPATH)
+GOPATH=$(go env GOPATH)
+export GOPATH
 fi
 
 # workaround for go1.10's no module support, we copy this run's source code
@@ -11,10 +12,10 @@ fi
 #
 # this only affects forks running travis runs. ( Pull requests and autobuilds
 # will clone into: PWD=/c/Users/travis/gopath/src/github.com/namecoin/certinject )
-if [ "$TRAVIS_GO_VERSION" = "1.10.x" ] && [ ! -d $GOPATH/src/github.com/namecoin/certinject ]; then
-  mkdir $GOPATH/src/github.com/namecoin && \
-  cp -av $PWD $GOPATH/src/github.com/namecoin/certinject && \
-  cd $GOPATH/src/github.com/namecoin/certinject
+if [ "$TRAVIS_GO_VERSION" = "1.10.x" ] && [ ! -d "$GOPATH"/src/github.com/namecoin/certinject ]; then
+  mkdir "$GOPATH"/src/github.com/namecoin && \
+  cp -av "$PWD" "$GOPATH"/src/github.com/namecoin/certinject && \
+  cd "$GOPATH"/src/github.com/namecoin/certinject
 fi
 
 echo Fetching dependencies
