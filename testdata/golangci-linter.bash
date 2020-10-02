@@ -22,6 +22,8 @@ do
     shellcheck "${I}"
 done
 
+echo "Shell checks passed."
+
 echo ----- Windows -----
 GOOS=windows "$(go env GOPATH)"/bin/golangci-lint run --no-config --enable-all \
   --color always \
