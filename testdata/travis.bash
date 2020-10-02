@@ -3,7 +3,8 @@ set -ex
 
 # set GOPATH if empty (travis sets it, but useful for humans)
 if [ -z "$GOPATH" ]; then
-export GOPATH=$(go env GOPATH)
+GOPATH=$(go env GOPATH)
+export GOPATH
 fi
 
 # workaround for go1.10's no module support, we copy this run's source code
