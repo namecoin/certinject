@@ -25,7 +25,7 @@ catch {
   Write-Host "Good. GET request to self-signed cert has failed ($Error)"
 }
 
-Write-Host "----- Self-signed end-entity TLS website; injecting certificate into System/Root -----"
+Write-Host "----- Self-signed end-entity TLS website; injecting DER certificate into System/Root -----"
 # inject certificate into trust store
 Write-Host "injecting certificate into trust store"
 & "certinject.exe" "-certinject.cert" "testdata/badssl.com.der.cert" "-certstore.cryptoapi"
@@ -56,7 +56,7 @@ catch {
   Write-Host "Good. GET request to untrusted root CA cert has failed ($Error)"
 }
 
-Write-Host "----- Untrusted root CA TLS website; injecting root CA certificate into System/Root -----"
+Write-Host "----- Untrusted root CA TLS website; injecting root CA PEM certificate into System/Root -----"
 # inject certificate into trust store
 Write-Host "injecting certificate into trust store"
 & "certinject.exe" "-certinject.cert" "testdata/untrusted-root.badssl.com.ca.pem.cert" "-certstore.cryptoapi"

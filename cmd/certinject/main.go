@@ -49,11 +49,20 @@ func main() {
 		log.Fatale(err, "error reading certificate")
 	}
 
-	if p, err := pem.Decode(b); err == nil {
-		b = p.Bytes
+	p, _ := pem.Decode(b)
+	if p != nil {
+		log.Debugf("user provided PEM-encoded input file; checking type...")
 
-		log.Debugf("user provided PEM encoded certificate, extracting DER bytes")
+		if p.Type != "CERTIFICATE" {
+			log.Fatalf("PEM type was %s, expecting CERTIFICATE", p.Type)
+		}
+
+		log.Debugf("PEM file is a certificate; extracting DER bytes...")
+
+		b = p.Bytes
 	}
+
+	log.Debugf("injecting certificate...")
 
 	certinject.InjectCert(b)
 	log.Debugf("injected certificate: %q", cert)
