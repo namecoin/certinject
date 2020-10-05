@@ -74,6 +74,82 @@ If (!$?) {
 }
 Write-Host "Good, Injection Success"
 
+Write-Host "----- Untrusted root CA TLS website; injecting root CA PEM certificate into System/Root with EKU Email -----"
+# inject certificate into trust store
+Write-Host "injecting certificate into trust store"
+& "certinject.exe" "-certinject.cert" "testdata/untrusted-root.badssl.com.ca.pem.cert" "-certstore.cryptoapi" "-eku.email"
+If (!$?) {
+  Write-Host "certificate injection failed"
+  exit 222
+}
+
+try {
+  Invoke-WebRequest -Uri "https://untrusted-root.badssl.com/" -Method GET -UseBasicParsing
+  If ($?) {
+    Write-Host "self-signed test failed"
+    exit 444
+  }
+}
+catch {
+  Write-Host "Good. GET request to untrusted root CA cert has failed ($Error)"
+}
+
+Write-Host "----- Untrusted root CA TLS website; injecting root CA PEM certificate into System/Root with EKU Any -----"
+# inject certificate into trust store
+Write-Host "injecting certificate into trust store"
+& "certinject.exe" "-certinject.cert" "testdata/untrusted-root.badssl.com.ca.pem.cert" "-certstore.cryptoapi" "-eku.any"
+If (!$?) {
+  Write-Host "certificate injection failed"
+  exit 222
+}
+
+# try GET request again
+Write-Host "trying GET request after certificate injection"
+Invoke-WebRequest -Uri "https://untrusted-root.badssl.com/" -Method GET -UseBasicParsing
+If (!$?) {
+  Write-Host "self-signed test failed"
+  exit 333
+}
+Write-Host "Good, Injection Success"
+
+Write-Host "----- Untrusted root CA TLS website; injecting root CA PEM certificate into System/Root with EKU Client -----"
+# inject certificate into trust store
+Write-Host "injecting certificate into trust store"
+& "certinject.exe" "-certinject.cert" "testdata/untrusted-root.badssl.com.ca.pem.cert" "-certstore.cryptoapi" "-eku.client"
+If (!$?) {
+  Write-Host "certificate injection failed"
+  exit 222
+}
+
+try {
+  Invoke-WebRequest -Uri "https://untrusted-root.badssl.com/" -Method GET -UseBasicParsing
+  If ($?) {
+    Write-Host "self-signed test failed"
+    exit 444
+  }
+}
+catch {
+  Write-Host "Good. GET request to untrusted root CA cert has failed ($Error)"
+}
+
+Write-Host "----- Untrusted root CA TLS website; injecting root CA PEM certificate into System/Root with EKU Server -----"
+# inject certificate into trust store
+Write-Host "injecting certificate into trust store"
+& "certinject.exe" "-certinject.cert" "testdata/untrusted-root.badssl.com.ca.pem.cert" "-certstore.cryptoapi" "-eku.server"
+If (!$?) {
+  Write-Host "certificate injection failed"
+  exit 222
+}
+
+# try GET request again
+Write-Host "trying GET request after certificate injection"
+Invoke-WebRequest -Uri "https://untrusted-root.badssl.com/" -Method GET -UseBasicParsing
+If (!$?) {
+  Write-Host "self-signed test failed"
+  exit 333
+}
+Write-Host "Good, Injection Success"
+
 # all done
 Write-Host "----- self-signed tests passed -----"
 exit 0
