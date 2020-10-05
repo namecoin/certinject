@@ -57,6 +57,19 @@ func (prop *Property) Marshal() ([]byte, error) {
 	return result, nil
 }
 
+func isContentPropID(propID uint32) bool {
+	switch propID {
+	case CertContentCertPropID:
+		return true
+	case CertContentCRLPropID:
+		return true
+	case CertContentCTLPropID:
+		return true
+	}
+
+	return false
+}
+
 func BuildExtKeyUsage(template *x509.Certificate) (*Property, error) {
 	value, err := x509ext.BuildExtKeyUsage(template)
 	if err != nil {
@@ -94,7 +107,19 @@ func (b Blob) sortedIDs() []uint32 {
 		propIDs = append(propIDs, id)
 	}
 
-	sort.Slice(propIDs, func(i, j int) bool { return propIDs[i] < propIDs[j] })
+	sort.Slice(propIDs, func(i, j int) bool {
+		// Content properties MUST be at the end, as per the following spec:
+		// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-gpef/6a9e35fa-2ac7-4c10-81e1-eabe8d2472f1
+		// Any properties that are after the content property will be silently
+		// ignored by CryptoAPI!
+		iContent := isContentPropID(propIDs[i])
+		jContent := isContentPropID(propIDs[j])
+		if iContent != jContent {
+			return jContent
+		}
+
+		return propIDs[i] < propIDs[j]
+	})
 
 	return propIDs
 }
