@@ -18,6 +18,9 @@ if [ "$TRAVIS_GO_VERSION" = "1.10.x" ] && [ ! -d "$GOPATH"/src/github.com/nameco
   cd "$GOPATH"/src/github.com/namecoin/certinject
 fi
 
+echo Generating Go source code
+go generate ./...
+
 echo Fetching dependencies
 go get -v -t ./...
 
