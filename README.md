@@ -14,8 +14,14 @@ Option A: Using Go build commands (works on any platform with Bash):
    familar with Go, setting it to the path to an empty directory will suffice.
    The directory will be filled with build files.)
 
-2. Run `go get -t -u github.com/namecoin/certinject/...`. The certinject source code will be
-   retrieved automatically and built.
+2. Run `go get -d -t -u github.com/namecoin/certinject/...`. The certinject source code will be
+   retrieved automatically.
+
+3. Run `go generate github.com/namecoin/certinject/...`. Some intermediate Go code will be
+   generated.
+
+4. Run `go get -t github.com/namecoin/certinject/...`. The certinject source code will be built.
+   The binary of the command-line tool `certinject` will be placed in `$GOPATH/bin`
 
 Option B: Using Makefile (non-Windows platforms):
 
