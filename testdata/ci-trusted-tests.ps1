@@ -164,6 +164,40 @@ If (!$?) {
   exit 222
 }
 
+Write-Host "----- Cleanup $physical_store/$logical_store via certutil -----"
+$root_cn = "BadSSL Untrusted Root Certificate Authority"
+$self_signed_cn = "*.badssl.com"
+If ( "system" -eq $physical_store ) {
+  & "certutil" "-delstore" "$logical_store" "$self_signed_cn"
+  If (!$?) {
+    exit 222
+  }
+  & "certutil" "-delstore" "$logical_store" "$root_cn"
+  If (!$?) {
+    exit 222
+  }
+}
+If ( "enterprise" -eq $physical_store ) {
+  & "certutil" "-enterprise" "-delstore" "$logical_store" "$self_signed_cn"
+  If (!$?) {
+    exit 222
+  }
+  & "certutil" "-enterprise" "-delstore" "$logical_store" "$root_cn"
+  If (!$?) {
+    exit 222
+  }
+}
+If ( "group-policy" -eq $physical_store ) {
+  & "certutil" "-grouppolicy" "-delstore" "$logical_store" "$self_signed_cn"
+  If (!$?) {
+    exit 222
+  }
+  & "certutil" "-grouppolicy" "-delstore" "$logical_store" "$root_cn"
+  If (!$?) {
+    exit 222
+  }
+}
+
 # all done
 Write-Host "----- All TLS handshake tests for $physical_store/$logical_store passed -----"
 exit 0
