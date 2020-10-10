@@ -8,27 +8,27 @@ Write-Host "----- Running TLS handshake tests for $physical_store/$logical_store
 
 Write-Host "----- Publicly trusted TLS website; no injection -----"
 
-& "powershell" "-ExecutionPolicy" "Unrestricted" "-File" "testdata/try-tls-handshake.ps1" "-url" "https://github.com/"
+& "powershell" "-ExecutionPolicy" "Unrestricted" "-File" "testdata/try-tls-handshake.ps1" "-url" "https://www.namecoin.org/"
 If (!$?) {
   exit 222
 }
 
-Write-Host "----- Publicly trusted TLS website; injecting root CA PEM certificate into $physical_store/$logical_store -----"
+Write-Host "----- Publicly trusted TLS website; injecting intermediate CA PEM certificate into $physical_store/$logical_store -----"
 # inject certificate into trust store
 Write-Host "injecting certificate into trust store"
-& "certinject.exe" "-capi.physical-store" "$physical_store" "-capi.logical-store" "$logical_store" "-certinject.cert" "testdata/github.com.ca.pem.cert" "-certstore.cryptoapi"
+& "certinject.exe" "-capi.physical-store" "$physical_store" "-capi.logical-store" "$logical_store" "-certinject.cert" "testdata/lets-encrypt-intermediate.ca.pem.cert" "-certstore.cryptoapi"
 If (!$?) {
   Write-Host "certificate injection failed"
   exit 222
 }
 
-& "powershell" "-ExecutionPolicy" "Unrestricted" "-File" "testdata/try-tls-handshake.ps1" "-url" "https://github.com/" "-fail"
+& "powershell" "-ExecutionPolicy" "Unrestricted" "-File" "testdata/try-tls-handshake.ps1" "-url" "https://www.namecoin.org/" "-fail"
 If (!$?) {
   exit 222
 }
 
 Write-Host "----- Cleanup $physical_store/$logical_store via certutil -----"
-$root_cn = "DigiCert High Assurance EV Root CA"
+$root_cn = "Let's Encrypt Authority X3"
 If ( "system" -eq $physical_store ) {
   & "certutil" "-delstore" "$logical_store" "$root_cn"
   If (!$?) {
