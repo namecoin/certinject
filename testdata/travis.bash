@@ -29,7 +29,7 @@ go build -o certinject.exe ./cmd/certinject
 
 if [ "$TRAVIS_OS_NAME" = "windows" ]; then
 echo Running powershell tests
-powershell -ExecutionPolicy Unrestricted -File "testdata/ci-failtest.ps1"
+powershell -ExecutionPolicy Unrestricted -File "testdata/ci-all-tests.ps1"
 fi
 
 echo Testing config parsing
