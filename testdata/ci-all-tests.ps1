@@ -1,3 +1,5 @@
+Write-Host "----- Running TLS handshake tests -----"
+
 & "powershell" "-ExecutionPolicy" "Unrestricted" "-File" "testdata/ci-trusted-tests.ps1" "-physical_store" "system" "-logical_store" "Root"
 If (!$?) {
   exit 222
