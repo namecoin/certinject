@@ -7,7 +7,7 @@ Write-Host "----- Running TLS handshake tests for $physical_store/$logical_store
 
 Write-Host "----- Publicly trusted TLS website; no injection -----"
 
-& "powershell" "-ExecutionPolicy" "Unrestricted" "-File" "testdata/try-tls-handshake.ps1" "-url" "https://github.com/"
+& "powershell" "-ExecutionPolicy" "Unrestricted" "-File" "testdata/try-tls-handshake.ps1" "-url" "https://www.namecoin.org/"
 If (!$?) {
   exit 222
 }
