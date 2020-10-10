@@ -22,6 +22,9 @@ If (!$?) {
   exit 222
 }
 
+Write-Host "Waiting for cache to clear"
+Start-Sleep -seconds 30
+
 & "powershell" "-ExecutionPolicy" "Unrestricted" "-File" "testdata/try-tls-handshake.ps1" "-url" "https://www.namecoin.org/" "-fail"
 If (!$?) {
   exit 222
