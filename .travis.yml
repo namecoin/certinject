@@ -45,7 +45,6 @@ stages:
 
 # 'test' stage
 script:
-  - env
   - bash testdata/travis.bash
 
 env:
