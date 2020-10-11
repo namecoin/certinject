@@ -33,6 +33,7 @@ const propReserved = 1
 var ErrProperty = errors.New("CryptoAPI blob property")
 var ErrPropertyBuild = fmt.Errorf("error building: %w", ErrProperty)
 var ErrPropertyMarshal = fmt.Errorf("error marshaling: %w", ErrProperty)
+var ErrPropertyParse = fmt.Errorf("error parsing: %w", ErrProperty)
 var ErrPropertyInvalidValue = fmt.Errorf("invalid Value: %w", ErrPropertyMarshal)
 
 func (prop *Property) Marshal() ([]byte, error) {
@@ -148,6 +149,43 @@ func (b Blob) Marshal() ([]byte, error) {
 
 		// Append the Property's bytes to the result
 		result = append(result, resultSingleProperty...)
+	}
+
+	return result, nil
+}
+
+func ParseBlob(data []byte) (Blob, error) {
+	result := Blob{}
+
+	var (
+		prop    Property
+		propLen int
+	)
+
+	for len(data) > 0 {
+		if len(data) < 12 {
+			return nil, fmt.Errorf("length inconsistent: %w", ErrPropertyParse)
+		}
+
+		prop = Property{}
+
+		// PropID is the first 4 bytes
+		prop.ID = binary.LittleEndian.Uint32(data[0:])
+
+		// Reserved value is the next 4 bytes
+		if binary.LittleEndian.Uint32(data[4:]) != propReserved {
+			return nil, fmt.Errorf("unexpected reserved field: %w", ErrPropertyParse)
+		}
+
+		// Then the value size
+		propLen = int(binary.LittleEndian.Uint32(data[8:]))
+		data = data[12:]
+
+		// And finally the value itself
+		prop.Value = data[:propLen]
+		data = data[propLen:]
+
+		result.SetProperty(&prop)
 	}
 
 	return result, nil
