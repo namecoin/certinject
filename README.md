@@ -2,6 +2,11 @@
 
 certinject is a library for injecting certificates into various trust stores.  It currently supports CryptoAPI (most Windows software) and NSS (most GNU/Linux software as well as some cross-platform software such as Firefox).
 
+## Why use certinject instead of Windows certutil?
+
+* certinject can inject certs without Administrator privileges.
+* certinject can set the Extended Key Usage (AKA Enhanced Key Usage) and Name Constraints properties on injected certs.  Setting the properties and injecting the cert are a single atomic operation.
+
 ## Building
 
 Prerequisites:
