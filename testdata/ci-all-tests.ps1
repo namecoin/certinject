@@ -35,6 +35,11 @@ If (!$?) {
 # group-policy/Disallowed doesn't seem to work reliably.  Maybe because they
 # expect you to use a Disallowed CTL instead?  Need to investigate further.
 
+& "powershell" "-ExecutionPolicy" "Unrestricted" "-File" "testdata/ci-store-wide-tests.ps1"
+If (!$?) {
+  exit 222
+}
+
 # all done
 Write-Host "----- All TLS handshake tests passed -----"
 exit 0
