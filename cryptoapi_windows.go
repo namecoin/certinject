@@ -25,6 +25,9 @@ var (
 		"Scope of CryptoAPI certificate store. Valid choices: current-user, system, enterprise, group-policy")
 	cryptoAPIFlagReset = cflag.Bool(cryptoAPIFlagGroup, "reset", false,
 		"Delete any existing properties of this certificate before applying any new ones")
+	searchSHA1 = cflag.String(cryptoAPIFlagGroup, "search-sha1", "",
+		"Search the store for an existing certificate with this SHA1 hash "+
+			"(uppercase hex) instead of loading a certificate from a file")
 	ekuFlagGroup = cflag.NewGroup(cryptoAPIFlagGroup, "eku")
 	ekuAny       = cflag.Bool(ekuFlagGroup, "any", false, "Any purpose")
 	ekuServer    = cflag.Bool(ekuFlagGroup, "server", false,
@@ -154,16 +157,25 @@ func injectCertCryptoAPI(derBytes []byte) {
 	registryBase := store.Base
 	storeKey := store.Key()
 
-	// Windows CryptoAPI uses the SHA-1 fingerprint to identify a cert.
-	// This is probably a Bad Thing (TM) since SHA-1 is weak.
-	// However, that's Microsoft's problem to fix, not ours.
-	fingerprint := sha1.Sum(derBytes) // #nosec G401
+	fingerprintHexUpper := searchSHA1.Value()
 
-	// Windows CryptoAPI uses a hex string to represent the fingerprint.
-	fingerprintHex := hex.EncodeToString(fingerprint[:])
+	if fingerprintHexUpper == "" {
+		if derBytes == nil {
+			log.Errorf("No cert specified")
+			return
+		}
 
-	// Windows CryptoAPI uses uppercase hex strings
-	fingerprintHexUpper := strings.ToUpper(fingerprintHex)
+		// Windows CryptoAPI uses the SHA-1 fingerprint to identify a cert.
+		// This is probably a Bad Thing (TM) since SHA-1 is weak.
+		// However, that's Microsoft's problem to fix, not ours.
+		fingerprint := sha1.Sum(derBytes) // #nosec G401
+
+		// Windows CryptoAPI uses a hex string to represent the fingerprint.
+		fingerprintHex := hex.EncodeToString(fingerprint[:])
+
+		// Windows CryptoAPI uses uppercase hex strings
+		fingerprintHexUpper = strings.ToUpper(fingerprintHex)
+	}
 
 	// Format documentation of Microsoft's "Certificate Registry Blob":
 

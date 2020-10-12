@@ -37,29 +37,32 @@ func main() {
 	certinject.SetLogLevel(level)
 	logp.SetSeverity(level)
 
+	var (
+		b   []byte
+		err error
+	)
+
 	cert := certflag.Value()
-	if cert == "" {
-		log.Fatal("no certificate to add")
-	}
+	if cert != "" {
+		log.Debugf("reading certificate: %q", cert)
 
-	log.Debugf("reading certificate: %q", cert)
-
-	b, err := ioutil.ReadFile(cert)
-	if err != nil {
-		log.Fatale(err, "error reading certificate")
-	}
-
-	p, _ := pem.Decode(b)
-	if p != nil {
-		log.Debugf("user provided PEM-encoded input file; checking type...")
-
-		if p.Type != "CERTIFICATE" {
-			log.Fatalf("PEM type was %s, expecting CERTIFICATE", p.Type)
+		b, err = ioutil.ReadFile(cert)
+		if err != nil {
+			log.Fatale(err, "error reading certificate")
 		}
 
-		log.Debugf("PEM file is a certificate; extracting DER bytes...")
+		p, _ := pem.Decode(b)
+		if p != nil {
+			log.Debugf("user provided PEM-encoded input file; checking type...")
 
-		b = p.Bytes
+			if p.Type != "CERTIFICATE" {
+				log.Fatalf("PEM type was %s, expecting CERTIFICATE", p.Type)
+			}
+
+			log.Debugf("PEM file is a certificate; extracting DER bytes...")
+
+			b = p.Bytes
+		}
 	}
 
 	log.Debugf("injecting certificate...")
