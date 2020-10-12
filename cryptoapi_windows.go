@@ -28,6 +28,8 @@ var (
 	searchSHA1 = cflag.String(cryptoAPIFlagGroup, "search-sha1", "",
 		"Search the store for an existing certificate with this SHA1 hash "+
 			"(uppercase hex) instead of loading a certificate from a file")
+	allCerts = cflag.Bool(cryptoAPIFlagGroup, "all-certs", false,
+		"Apply operations to all certificates in the specified store")
 	ekuFlagGroup = cflag.NewGroup(cryptoAPIFlagGroup, "eku")
 	ekuAny       = cflag.Bool(ekuFlagGroup, "any", false, "Any purpose")
 	ekuServer    = cflag.Bool(ekuFlagGroup, "server", false,
@@ -74,7 +76,10 @@ var (
 const cryptoAPIMagicName = "Namecoin"
 const cryptoAPIMagicValue = 1
 
-var ErrGetInitialBlob = errors.New("error getting initial blob")
+var ErrInjectCerts = errors.New("error injecting certs")
+var ErrEnumerateCerts = fmt.Errorf("error enumerating certs: %w", ErrInjectCerts)
+var ErrGetInitialBlob = fmt.Errorf("error getting initial blob: %w", ErrInjectCerts)
+var ErrEditBlob = fmt.Errorf("error editing blob: %w", ErrInjectCerts)
 
 var (
 	// cryptoAPIStores consists of every implemented store.
@@ -113,6 +118,22 @@ func cryptoAPINameToStore(name string) (Store, error) {
 	}
 
 	return store, nil
+}
+
+func allFingerprintsInStore(registryBase registry.Key, storeKey string) ([]string, error) {
+	// Open up the cert store.
+	certStoreKey, err := registry.OpenKey(registryBase, storeKey, registry.ENUMERATE_SUB_KEYS)
+	if err != nil {
+		return nil, fmt.Errorf("%s: couldn't open cert store: %w", err, ErrEnumerateCerts)
+	}
+	defer certStoreKey.Close()
+
+	fingerprintHexUpperList, err := certStoreKey.ReadSubKeyNames(0)
+	if err != nil {
+		return nil, fmt.Errorf("%s: couldn't list certs in cert store: %w", err, ErrEnumerateCerts)
+	}
+
+	return fingerprintHexUpperList, nil
 }
 
 func readInputBlob(derBytes []byte, registryBase registry.Key, path string) (certblob.Blob, error) {
@@ -157,9 +178,23 @@ func injectCertCryptoAPI(derBytes []byte) {
 	registryBase := store.Base
 	storeKey := store.Key()
 
-	fingerprintHexUpper := searchSHA1.Value()
+	fingerprintHexUpperList := []string{}
 
-	if fingerprintHexUpper == "" {
+	if allCerts.Value() {
+		derBytes = nil
+
+		fingerprintHexUpperList, err = allFingerprintsInStore(registryBase, storeKey)
+		if err != nil {
+			log.Errorf("Couldn't enumerate certificates in store: %s", err)
+			return
+		}
+	}
+
+	if len(fingerprintHexUpperList) == 0 && searchSHA1.Value() != "" {
+		fingerprintHexUpperList = append(fingerprintHexUpperList, searchSHA1.Value())
+	}
+
+	if len(fingerprintHexUpperList) == 0 {
 		if derBytes == nil {
 			log.Errorf("No cert specified")
 			return
@@ -174,7 +209,7 @@ func injectCertCryptoAPI(derBytes []byte) {
 		fingerprintHex := hex.EncodeToString(fingerprint[:])
 
 		// Windows CryptoAPI uses uppercase hex strings
-		fingerprintHexUpper = strings.ToUpper(fingerprintHex)
+		fingerprintHexUpperList = append(fingerprintHexUpperList, strings.ToUpper(fingerprintHex))
 	}
 
 	// Format documentation of Microsoft's "Certificate Registry Blob":
@@ -218,6 +253,13 @@ func injectCertCryptoAPI(derBytes []byte) {
 	// Windows will happily regenerate all the others for you, whenever you actually try to use the certificate.
 	// How cool is that?
 
+	for _, fingerprintHexUpper := range fingerprintHexUpperList {
+		injectSingleCertCryptoAPI(derBytes, fingerprintHexUpper, registryBase, storeKey)
+	}
+}
+
+func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
+	registryBase registry.Key, storeKey string) {
 	// Construct the input Blob
 	blob, err := readInputBlob(derBytes, registryBase, storeKey+`\`+fingerprintHexUpper)
 	if err != nil {
@@ -225,6 +267,94 @@ func injectCertCryptoAPI(derBytes []byte) {
 		return
 	}
 
+	err = editBlob(blob)
+	if err != nil {
+		log.Errorf("Couldn't edit blob: %s", err)
+		return
+	}
+
+	// Marshal the Blob
+	blobBytes, err := blob.Marshal()
+	if err != nil {
+		log.Errorf("Couldn't marshal cert blob: %s", err)
+		return
+	}
+
+	// Open up the cert store.
+	certStoreKey, err := registry.OpenKey(registryBase, storeKey, registry.ALL_ACCESS)
+	if err != nil {
+		log.Errorf("Couldn't open cert store: %s", err)
+		return
+	}
+	defer certStoreKey.Close()
+
+	// Create the registry key in which we will store the cert.
+	// The 2nd result of CreateKey is openedExisting, which tells us if the cert already existed.
+	// This doesn't matter to us.  If true, the "last modified" metadata won't update,
+	// but we delete and recreate the magic value inside it as a workaround.
+	certKey, _, err := registry.CreateKey(certStoreKey, fingerprintHexUpper, registry.ALL_ACCESS)
+	if err != nil {
+		log.Errorf("Couldn't create registry key for certificate: %s", err)
+		return
+	}
+	defer certKey.Close()
+
+	// Add a magic value which indicates that the certificate is a
+	// Namecoin cert.  This will be used for deleting expired certs.
+	// However, we have to delete it before we create it,
+	// so that we make sure that the "last modified" metadata gets updated.
+	// If an error occurs during deletion, we ignore it,
+	// since it probably just means it wasn't there already.
+	_ = certKey.DeleteValue(cryptoAPIMagicName)
+
+	err = certKey.SetDWordValue(cryptoAPIMagicName, cryptoAPIMagicValue)
+	if err != nil {
+		log.Errorf("Couldn't set magic registry value for certificate: %s", err)
+		return
+	}
+
+	// Create the registry value which holds the certificate.
+	err = certKey.SetBinaryValue("Blob", blobBytes)
+	if err != nil {
+		log.Errorf("Couldn't set blob registry value for certificate: %s", err)
+		return
+	}
+}
+
+func editBlob(blob certblob.Blob) error {
+	err := editBlobEKU(blob)
+	if err != nil {
+		return err
+	}
+
+	err = editBlobNameConstraints(blob)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func editBlobEKU(blob certblob.Blob) error {
+	ekus := buildEKUList()
+
+	if len(ekus) > 0 {
+		ekuTemplate := x509.Certificate{
+			ExtKeyUsage: ekus,
+		}
+
+		ekuProperty, err := certblob.BuildExtKeyUsage(&ekuTemplate)
+		if err != nil {
+			return fmt.Errorf("%s: couldn't marshal extended key usage property: %w", err, ErrEditBlob)
+		}
+
+		blob.SetProperty(ekuProperty)
+	}
+
+	return nil
+}
+
+func buildEKUList() []x509.ExtKeyUsage {
 	ekus := []x509.ExtKeyUsage{}
 
 	if ekuAny.Value() {
@@ -275,20 +405,28 @@ func injectCertCryptoAPI(derBytes []byte) {
 		ekus = append(ekus, x509.ExtKeyUsageMicrosoftKernelCodeSigning)
 	}
 
-	if len(ekus) > 0 {
-		ekuTemplate := x509.Certificate{
-			ExtKeyUsage: ekus,
-		}
+	return ekus
+}
 
-		ekuProperty, err := certblob.BuildExtKeyUsage(&ekuTemplate)
-		if err != nil {
-			log.Errorf("Couldn't marshal extended key usage property: %s", err)
-			return
-		}
-
-		blob.SetProperty(ekuProperty)
+func editBlobNameConstraints(blob certblob.Blob) error {
+	nameConstraintsTemplate, nameConstraintsValid, err := buildNameConstraintsTemplate()
+	if err != nil {
+		return err
 	}
 
+	if nameConstraintsValid {
+		nameConstraintsProperty, err := certblob.BuildNameConstraints(nameConstraintsTemplate)
+		if err != nil {
+			return fmt.Errorf("%s: couldn't marshal name constraints property: %w", err, ErrEditBlob)
+		}
+
+		blob.SetProperty(nameConstraintsProperty)
+	}
+
+	return nil
+}
+
+func buildNameConstraintsTemplate() (*x509.Certificate, bool, error) {
 	nameConstraintsValid := false
 	nameConstraintsTemplate := x509.Certificate{}
 
@@ -305,8 +443,7 @@ func injectCertCryptoAPI(derBytes []byte) {
 	if nameConstraintsPermittedIP.Value() != "" {
 		_, nameConstraintsPermittedIPNet, err := net.ParseCIDR(nameConstraintsPermittedIP.Value())
 		if err != nil {
-			log.Errorf("Couldn't parse permitted IP CIDR: %s", err)
-			return
+			return nil, false, fmt.Errorf("%s: couldn't parse permitted IP CIDR: %w", err, ErrEditBlob)
 		}
 
 		nameConstraintsTemplate.PermittedIPRanges = []*net.IPNet{nameConstraintsPermittedIPNet}
@@ -316,8 +453,7 @@ func injectCertCryptoAPI(derBytes []byte) {
 	if nameConstraintsExcludedIP.Value() != "" {
 		_, nameConstraintsExcludedIPNet, err := net.ParseCIDR(nameConstraintsExcludedIP.Value())
 		if err != nil {
-			log.Errorf("Couldn't parse excluded IP CIDR: %s", err)
-			return
+			return nil, false, fmt.Errorf("%s: couldn't parse excluded IP CIDR: %w", err, ErrEditBlob)
 		}
 
 		nameConstraintsTemplate.ExcludedIPRanges = []*net.IPNet{nameConstraintsExcludedIPNet}
@@ -344,62 +480,7 @@ func injectCertCryptoAPI(derBytes []byte) {
 		nameConstraintsValid = true
 	}
 
-	if nameConstraintsValid {
-		nameConstraintsProperty, err := certblob.BuildNameConstraints(&nameConstraintsTemplate)
-		if err != nil {
-			log.Errorf("Couldn't marshal name constraints property: %s", err)
-			return
-		}
-
-		blob.SetProperty(nameConstraintsProperty)
-	}
-
-	// Marshal the Blob
-	blobBytes, err := blob.Marshal()
-	if err != nil {
-		log.Errorf("Couldn't marshal cert blob: %s", err)
-		return
-	}
-
-	// Open up the cert store.
-	certStoreKey, err := registry.OpenKey(registryBase, storeKey, registry.ALL_ACCESS)
-	if err != nil {
-		log.Errorf("Couldn't open cert store: %s", err)
-		return
-	}
-	defer certStoreKey.Close()
-
-	// Create the registry key in which we will store the cert.
-	// The 2nd result of CreateKey is openedExisting, which tells us if the cert already existed.
-	// This doesn't matter to us.  If true, the "last modified" metadata won't update,
-	// but we delete and recreate the magic value inside it as a workaround.
-	certKey, _, err := registry.CreateKey(certStoreKey, fingerprintHexUpper, registry.ALL_ACCESS)
-	if err != nil {
-		log.Errorf("Couldn't create registry key for certificate: %s", err)
-		return
-	}
-	defer certKey.Close()
-
-	// Add a magic value which indicates that the certificate is a
-	// Namecoin cert.  This will be used for deleting expired certs.
-	// However, we have to delete it before we create it,
-	// so that we make sure that the "last modified" metadata gets updated.
-	// If an error occurs during deletion, we ignore it,
-	// since it probably just means it wasn't there already.
-	_ = certKey.DeleteValue(cryptoAPIMagicName)
-
-	err = certKey.SetDWordValue(cryptoAPIMagicName, cryptoAPIMagicValue)
-	if err != nil {
-		log.Errorf("Couldn't set magic registry value for certificate: %s", err)
-		return
-	}
-
-	// Create the registry value which holds the certificate.
-	err = certKey.SetBinaryValue("Blob", blobBytes)
-	if err != nil {
-		log.Errorf("Couldn't set blob registry value for certificate: %s", err)
-		return
-	}
+	return &nameConstraintsTemplate, nameConstraintsValid, nil
 }
 
 func cleanCertsCryptoAPI() {
