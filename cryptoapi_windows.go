@@ -19,7 +19,7 @@ import (
 var (
 	cryptoAPIFlagGroup            = cflag.NewGroup(flagGroup, "capi")
 	cryptoAPIFlagLogicalStoreName = cflag.String(cryptoAPIFlagGroup, "logical-store", "Root",
-		"Name of CryptoAPI logical store to inject certificate into. Consider: Root, Trust, CA, My, Disallowed")
+		"Name of CryptoAPI logical store to inject certificate into. Consider: AuthRoot, Root, Trust, CA, My, Disallowed")
 	cryptoAPIFlagPhysicalStoreName = cflag.String(cryptoAPIFlagGroup, "physical-store", "system",
 		"Scope of CryptoAPI certificate store. Valid choices: current-user, system, enterprise, group-policy")
 	ekuFlagGroup = cflag.NewGroup(cryptoAPIFlagGroup, "eku")
