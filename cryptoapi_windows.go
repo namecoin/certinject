@@ -4,6 +4,7 @@ import (
 	"crypto/sha1" // #nosec G505
 	"crypto/x509"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -22,6 +23,8 @@ var (
 		"Name of CryptoAPI logical store to inject certificate into. Consider: AuthRoot, Root, Trust, CA, My, Disallowed")
 	cryptoAPIFlagPhysicalStoreName = cflag.String(cryptoAPIFlagGroup, "physical-store", "system",
 		"Scope of CryptoAPI certificate store. Valid choices: current-user, system, enterprise, group-policy")
+	cryptoAPIFlagReset = cflag.Bool(cryptoAPIFlagGroup, "reset", false,
+		"Delete any existing properties of this certificate before applying any new ones")
 	ekuFlagGroup = cflag.NewGroup(cryptoAPIFlagGroup, "eku")
 	ekuAny       = cflag.Bool(ekuFlagGroup, "any", false, "Any purpose")
 	ekuServer    = cflag.Bool(ekuFlagGroup, "server", false,
@@ -68,6 +71,8 @@ var (
 const cryptoAPIMagicName = "Namecoin"
 const cryptoAPIMagicValue = 1
 
+var ErrGetInitialBlob = errors.New("error getting initial blob")
+
 var (
 	// cryptoAPIStores consists of every implemented store.
 	// when adding a new one, the `%s` variable is optional.
@@ -107,6 +112,38 @@ func cryptoAPINameToStore(name string) (Store, error) {
 	return store, nil
 }
 
+func readInputBlob(derBytes []byte, registryBase registry.Key, path string) (certblob.Blob, error) {
+	if cryptoAPIFlagReset.Value() && derBytes != nil {
+		// We already know the cert preimage, and we're excluding any
+		// properties, so no need to check the registry.
+		return certblob.Blob{certblob.CertContentCertPropID: derBytes}, nil
+	}
+
+	// We need to look up either the cert preimage or the properties via
+	// the registry.
+
+	// Open up the cert key.
+	certKey, err := registry.OpenKey(registryBase, path, registry.QUERY_VALUE)
+	if err != nil && derBytes != nil {
+		// We can't read the blob, but we do already know the cert
+		// preimage, so create a default blob based on that preimage.
+		return certblob.Blob{certblob.CertContentCertPropID: derBytes}, nil
+	}
+	defer certKey.Close()
+
+	inputBlobBytes, _, err := certKey.GetBinaryValue("Blob")
+	if err != nil {
+		return nil, fmt.Errorf("%s: couldn't read blob value: %w", err, ErrGetInitialBlob)
+	}
+
+	blob, err := certblob.ParseBlob(inputBlobBytes)
+	if err != nil {
+		return nil, fmt.Errorf("%s: couldn't parse blob: %w", err, ErrGetInitialBlob)
+	}
+
+	return blob, nil
+}
+
 func injectCertCryptoAPI(derBytes []byte) {
 	store, err := cryptoAPINameToStore(cryptoAPIFlagPhysicalStoreName.Value())
 	if err != nil {
@@ -116,6 +153,17 @@ func injectCertCryptoAPI(derBytes []byte) {
 
 	registryBase := store.Base
 	storeKey := store.Key()
+
+	// Windows CryptoAPI uses the SHA-1 fingerprint to identify a cert.
+	// This is probably a Bad Thing (TM) since SHA-1 is weak.
+	// However, that's Microsoft's problem to fix, not ours.
+	fingerprint := sha1.Sum(derBytes) // #nosec G401
+
+	// Windows CryptoAPI uses a hex string to represent the fingerprint.
+	fingerprintHex := hex.EncodeToString(fingerprint[:])
+
+	// Windows CryptoAPI uses uppercase hex strings
+	fingerprintHexUpper := strings.ToUpper(fingerprintHex)
 
 	// Format documentation of Microsoft's "Certificate Registry Blob":
 
@@ -158,8 +206,12 @@ func injectCertCryptoAPI(derBytes []byte) {
 	// Windows will happily regenerate all the others for you, whenever you actually try to use the certificate.
 	// How cool is that?
 
-	// Construct the Blob
-	blob := certblob.Blob{certblob.CertContentCertPropID: derBytes}
+	// Construct the input Blob
+	blob, err := readInputBlob(derBytes, registryBase, storeKey+`\`+fingerprintHexUpper)
+	if err != nil {
+		log.Errorf("Couldn't read input blob: %s", err)
+		return
+	}
 
 	ekus := []x509.ExtKeyUsage{}
 
@@ -304,17 +356,6 @@ func injectCertCryptoAPI(derBytes []byte) {
 		return
 	}
 	defer certStoreKey.Close()
-
-	// Windows CryptoAPI uses the SHA-1 fingerprint to identify a cert.
-	// This is probably a Bad Thing (TM) since SHA-1 is weak.
-	// However, that's Microsoft's problem to fix, not ours.
-	fingerprint := sha1.Sum(derBytes) // #nosec G401
-
-	// Windows CryptoAPI uses a hex string to represent the fingerprint.
-	fingerprintHex := hex.EncodeToString(fingerprint[:])
-
-	// Windows CryptoAPI uses uppercase hex strings
-	fingerprintHexUpper := strings.ToUpper(fingerprintHex)
 
 	// Create the registry key in which we will store the cert.
 	// The 2nd result of CreateKey is openedExisting, which tells us if the cert already existed.
