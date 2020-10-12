@@ -28,6 +28,8 @@ var (
 	searchSHA1 = cflag.String(cryptoAPIFlagGroup, "search-sha1", "",
 		"Search the store for an existing certificate with this SHA1 hash "+
 			"(uppercase hex) instead of loading a certificate from a file")
+	allCerts = cflag.Bool(cryptoAPIFlagGroup, "all-certs", false,
+		"Apply operations to all certificates in the specified store")
 	ekuFlagGroup = cflag.NewGroup(cryptoAPIFlagGroup, "eku")
 	ekuAny       = cflag.Bool(ekuFlagGroup, "any", false, "Any purpose")
 	ekuServer    = cflag.Bool(ekuFlagGroup, "server", false,
@@ -74,7 +76,9 @@ var (
 const cryptoAPIMagicName = "Namecoin"
 const cryptoAPIMagicValue = 1
 
-var ErrGetInitialBlob = errors.New("error getting initial blob")
+var ErrInjectCerts = errors.New("error injecting certs")
+var ErrEnumerateCerts = fmt.Errorf("error enumerating certs: %w", ErrInjectCerts)
+var ErrGetInitialBlob = fmt.Errorf("error getting initial blob: %w", ErrInjectCerts)
 
 var (
 	// cryptoAPIStores consists of every implemented store.
@@ -113,6 +117,22 @@ func cryptoAPINameToStore(name string) (Store, error) {
 	}
 
 	return store, nil
+}
+
+func allFingerprintsInStore(registryBase registry.Key, storeKey string) ([]string, error) {
+	// Open up the cert store.
+	certStoreKey, err := registry.OpenKey(registryBase, storeKey, registry.ENUMERATE_SUB_KEYS)
+	if err != nil {
+		return nil, fmt.Errorf("%s: couldn't open cert store: %w", err, ErrEnumerateCerts)
+	}
+	defer certStoreKey.Close()
+
+	fingerprintHexUpperList, err := certStoreKey.ReadSubKeyNames(0)
+	if err != nil {
+		return nil, fmt.Errorf("%s: couldn't list certs in cert store: %w", err, ErrEnumerateCerts)
+	}
+
+	return fingerprintHexUpperList, nil
 }
 
 func readInputBlob(derBytes []byte, registryBase registry.Key, path string) (certblob.Blob, error) {
@@ -157,9 +177,23 @@ func injectCertCryptoAPI(derBytes []byte) {
 	registryBase := store.Base
 	storeKey := store.Key()
 
-	fingerprintHexUpper := searchSHA1.Value()
+	fingerprintHexUpperList := []string{}
 
-	if fingerprintHexUpper == "" {
+	if allCerts.Value() {
+		derBytes = nil
+
+		fingerprintHexUpperList, err = allFingerprintsInStore(registryBase, storeKey)
+		if err != nil {
+			log.Errorf("Couldn't enumerate certificates in store: %s", err)
+			return
+		}
+	}
+
+	if len(fingerprintHexUpperList) == 0 && searchSHA1.Value() != "" {
+		fingerprintHexUpperList = append(fingerprintHexUpperList, searchSHA1.Value())
+	}
+
+	if len(fingerprintHexUpperList) == 0 {
 		if derBytes == nil {
 			log.Errorf("No cert specified")
 			return
@@ -174,7 +208,7 @@ func injectCertCryptoAPI(derBytes []byte) {
 		fingerprintHex := hex.EncodeToString(fingerprint[:])
 
 		// Windows CryptoAPI uses uppercase hex strings
-		fingerprintHexUpper = strings.ToUpper(fingerprintHex)
+		fingerprintHexUpperList = append(fingerprintHexUpperList, strings.ToUpper(fingerprintHex))
 	}
 
 	// Format documentation of Microsoft's "Certificate Registry Blob":
@@ -218,6 +252,13 @@ func injectCertCryptoAPI(derBytes []byte) {
 	// Windows will happily regenerate all the others for you, whenever you actually try to use the certificate.
 	// How cool is that?
 
+	for _, fingerprintHexUpper := range fingerprintHexUpperList {
+		injectSingleCertCryptoAPI(derBytes, fingerprintHexUpper, registryBase, storeKey)
+	}
+}
+
+func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
+	registryBase registry.Key, storeKey string) {
 	// Construct the input Blob
 	blob, err := readInputBlob(derBytes, registryBase, storeKey+`\`+fingerprintHexUpper)
 	if err != nil {
