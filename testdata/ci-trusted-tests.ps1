@@ -194,6 +194,19 @@ If (!$?) {
   exit 222
 }
 
+Write-Host "----- Untrusted root CA TLS website; editing SHA1 of root CA PEM certificate into $physical_store/$logical_store with EKU Client -----"
+Write-Host "injecting certificate into trust store"
+& "certinject.exe" "-capi.physical-store" "$physical_store" "-capi.logical-store" "$logical_store" "-capi.search-sha1" "7890C8934D5869B25D2F8D0D646F9A5D7385BA85" "-certstore.cryptoapi" "-eku.client"
+If (!$?) {
+  Write-Host "certificate injection failed"
+  exit 222
+}
+
+& "powershell" "-ExecutionPolicy" "Unrestricted" "-File" "testdata/try-tls-handshake.ps1" "-url" "https://untrusted-root.badssl.com/" "-fail"
+If (!$?) {
+  exit 222
+}
+
 Write-Host "----- Cleanup $physical_store/$logical_store via certutil -----"
 $root_cn = "BadSSL Untrusted Root Certificate Authority"
 $self_signed_cn = "*.badssl.com"
