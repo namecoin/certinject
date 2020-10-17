@@ -110,7 +110,8 @@ func (s Store) Key() string {
 	return fmt.Sprintf(`%s\`+s.Logical, s.Physical, cryptoAPIFlagLogicalStoreName.Value())
 }
 
-// cryptoAPINameToStore checks that the choice is valid before returning a complete Store request
+// cryptoAPINameToStore returns a Store for the specified name.  Returns an
+// error if the specified name is invalid.
 func cryptoAPINameToStore(name string) (Store, error) {
 	store, ok := cryptoAPIStores[name]
 	if !ok {
