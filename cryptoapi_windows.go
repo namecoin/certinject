@@ -78,6 +78,9 @@ const cryptoAPIMagicValue = 1
 
 var ErrInjectCerts = errors.New("error injecting certs")
 var ErrEnumerateCerts = fmt.Errorf("error enumerating certs: %w", ErrInjectCerts)
+var ErrInvalidPhysicalStore = fmt.Errorf("invalid choice for physical store "+
+	"(consider current-user, system, enterprise, group-policy): %w",
+	ErrEnumerateCerts)
 var ErrGetInitialBlob = fmt.Errorf("error getting initial blob: %w", ErrInjectCerts)
 var ErrEditBlob = fmt.Errorf("error editing blob: %w", ErrInjectCerts)
 
@@ -86,10 +89,10 @@ var (
 	// when adding a new one, the `%s` variable is optional.
 	// if `%s` exists in the Logical string, it is replaced with the value of -store flag
 	cryptoAPIStores = map[string]Store{
-		"current-user": Store{registry.CURRENT_USER, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
-		"system":       Store{registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
-		"enterprise":   Store{registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\EnterpriseCertificates`, `%s\Certificates`},
-		"group-policy": Store{registry.LOCAL_MACHINE, `SOFTWARE\Policies\Microsoft\SystemCertificates`, `%s\Certificates`},
+		"current-user": {registry.CURRENT_USER, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
+		"system":       {registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
+		"enterprise":   {registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\EnterpriseCertificates`, `%s\Certificates`},
+		"group-policy": {registry.LOCAL_MACHINE, `SOFTWARE\Policies\Microsoft\SystemCertificates`, `%s\Certificates`},
 	}
 )
 
@@ -110,11 +113,12 @@ func (s Store) Key() string {
 	return fmt.Sprintf(`%s\`+s.Logical, s.Physical, cryptoAPIFlagLogicalStoreName.Value())
 }
 
-// cryptoAPINameToStore checks that the choice is valid before returning a complete Store request
+// cryptoAPINameToStore returns a Store for the specified name.  Returns an
+// error if the specified name is invalid.
 func cryptoAPINameToStore(name string) (Store, error) {
 	store, ok := cryptoAPIStores[name]
 	if !ok {
-		return Store{}, fmt.Errorf("invalid choice for physical store, consider: current-user, system, enterprise, group-policy")
+		return Store{}, ErrInvalidPhysicalStore
 	}
 
 	return store, nil
@@ -211,47 +215,6 @@ func injectCertCryptoAPI(derBytes []byte) {
 		// Windows CryptoAPI uses uppercase hex strings
 		fingerprintHexUpperList = append(fingerprintHexUpperList, strings.ToUpper(fingerprintHex))
 	}
-
-	// Format documentation of Microsoft's "Certificate Registry Blob":
-
-	// 5c 00 00 00 // propid
-	// 01 00 00 00 // unknown (possibly a version or flags field; value is always the same in my testing)
-	// 04 00 00 00 // size (little endian)
-	// subject public key bit length // data[size]
-
-	// 19 00 00 00
-	// 01 00 00 00
-	// 10 00 00 00
-	// MD5 of ECC pubkey of certificate
-
-	// 0f 00 00 00
-	// 01 00 00 00
-	// 20 00 00 00
-	// Signature Hash
-
-	// 03 00 00 00
-	// 01 00 00 00
-	// 14 00 00 00
-	// Cert SHA1 hash
-
-	// 14 00 00 00
-	// 01 00 00 00
-	// 14 00 00 00
-	// Key Identifier
-
-	// 04 00 00 00
-	// 01 00 00 00
-	// 10 00 00 00
-	// Cert MD5 hash
-
-	// 20 00 00 00
-	// 01 00 00 00
-	// cert length
-	// cert
-
-	// But, guess what?  All you need is the "20" record.
-	// Windows will happily regenerate all the others for you, whenever you actually try to use the certificate.
-	// How cool is that?
 
 	for _, fingerprintHexUpper := range fingerprintHexUpperList {
 		injectSingleCertCryptoAPI(derBytes, fingerprintHexUpper, registryBase, storeKey)
@@ -526,6 +489,10 @@ func cleanCertsCryptoAPI() {
 	}
 }
 
+// This function is specific to the dehydrated certificate method of positive
+// overrides, which is deprecated; thus we're not going to maintain this
+// function.
+//nolint
 func checkCertExpiredCryptoAPI(certStoreKey registry.Key, subKeyName string) (bool, error) {
 	// Open the cert
 	certKey, err := registry.OpenKey(certStoreKey, subKeyName, registry.ALL_ACCESS)
