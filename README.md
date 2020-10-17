@@ -37,6 +37,10 @@ Option B: Using Makefile (non-Windows platforms):
 
 TODO.
 
+## Maintenance Status
+
+NSS support is currently unmaintained.  We may accept patches for it, but we are unlikely to fix NSS-related bugs ourselves.  All other functionality is maintained.
+
 ## Licence
 
 Copyright (C) 2017-2020 Namecoin Developers.

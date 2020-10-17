@@ -26,8 +26,11 @@ echo "Shell checks passed."
 
 echo ----- Windows -----
 GOOS=windows go generate ./...
+# NSS support is unmaintained; don't bother us with complaints about it.
 GOOS=windows "$(go env GOPATH)"/bin/golangci-lint run --no-config --enable-all \
   --color always \
+  --skip-files "file.go" \
+  --skip-files "nss.go" \
   --disable gochecknoglobals,gomnd \
   -v "$@" \
   ./...
@@ -36,6 +39,8 @@ echo ----- Linux -----
 GOOS=linux go generate ./...
 GOOS=linux "$(go env GOPATH)"/bin/golangci-lint run --no-config --enable-all \
   --color always \
+  --skip-files "file.go" \
+  --skip-files "nss.go" \
   --disable gochecknoglobals,gomnd \
   -v "$@" \
   ./...
