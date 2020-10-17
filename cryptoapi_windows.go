@@ -115,7 +115,8 @@ func (s Store) Key() string {
 func cryptoAPINameToStore(name string) (Store, error) {
 	store, ok := cryptoAPIStores[name]
 	if !ok {
-		return Store{}, fmt.Errorf("invalid choice for physical store, consider: current-user, system, enterprise, group-policy")
+		return Store{}, fmt.Errorf("invalid choice for physical store, " +
+			"consider: current-user, system, enterprise, group-policy")
 	}
 
 	return store, nil
