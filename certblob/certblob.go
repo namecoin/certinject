@@ -13,7 +13,6 @@ import (
 	"github.com/namecoin/certinject/x509ext"
 )
 
-//nolint:lll
 // Structure defined at (archived on Archive.org and Archive.today):
 // https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-gpef/e051aba9-c9df-4f82-a42a-c13012c9d381
 type Property struct {
