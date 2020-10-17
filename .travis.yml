@@ -60,6 +60,7 @@ jobs:
       before_deploy:
         - export RELEASES_NAME=$(date +%F)-$(echo $TRAVIS_COMMIT | cut -c-8)
         - 'curl -H "Authorization: token $RELEASES_TOKEN" https://api.github.com/users/NamecoinBot -I'
+        - 'export GITHUB_TOKEN=$RELEASES_TOKEN'
       deploy:
         provider: releases
         token: TODO
