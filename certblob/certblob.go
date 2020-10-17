@@ -14,8 +14,8 @@ import (
 )
 
 //nolint:lll
-// Structure defined at:
-// https://web.archive.org/web/20200615211614/https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-gpef/e051aba9-c9df-4f82-a42a-c13012c9d381
+// Structure defined at (archived on Archive.org and Archive.today):
+// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-gpef/e051aba9-c9df-4f82-a42a-c13012c9d381
 type Property struct {
 	ID    uint32
 	Value []byte
@@ -109,7 +109,8 @@ func (b Blob) sortedIDs() []uint32 {
 	}
 
 	sort.Slice(propIDs, func(i, j int) bool {
-		// Content properties MUST be at the end, as per the following spec:
+		// Content properties MUST be at the end, as per the following spec
+		// (archived on Archive.org and Archive.today):
 		// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-gpef/6a9e35fa-2ac7-4c10-81e1-eabe8d2472f1
 		// Any properties that are after the content property will be silently
 		// ignored by CryptoAPI!
