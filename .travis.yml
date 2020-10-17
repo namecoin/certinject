@@ -69,10 +69,6 @@ jobs:
         on:
           repo: namecoin/certinject
           tags: false
-      env:
-        global:
-          # RELEASES_TOKEN for automatic releases
-          - secure: "WZZecuvmgOAFnOtJnQfLeAY4oRlIiZVl3g2pABTBI0x1nsu8oTotQImHnQsgkM30mWo03vUZOjuBj2dtm41JQJH2AcDVJrnpDg8IqF3c6iMMUkhODZCDmdLlqe1KWNJTcHrEGMMac5la/q4EZGh0FDcXXKq0dHZLYkkm5AJFy19DNS6Tcf2xv3hwnwTt/eFqw8EipOn+z06jPoVS3YdfmK1MQLnDk5V7jcjgW+3ttxoMB9iNFqKA1hW89vOed84vVbp0dRhSffKKf4s3jmljXTAuD0lI1Mi/eiKbQ2lgCNiQqimF1G9Mys2D+j5OVyJmedq6X6i96CrcsjF/7ps3/m6UucNNykIU07uGq6HnIPUXElvWU1jXYchPAEevmjInHlPvKeboMzsynbl2z1IQlvRgOkxsPQ1oj6EN+u1L17KTp24dNzqEoITd1HHqgLJQFuheC8NiVULAVXRxHKdAfck4V+Pm+pLLtP1QYwy73JPJt5NSK0qHHMDFrMQFH37kEtRtKdNLFyeAVnxYIPnMaXqmKK3UKnPFzL5RgHskKjCjw5ZeEmou+VplEpEAesZl5OkDFMV4/76X0h+g1HBd1uRj26lYsdguAjp7mMP130j3nYDzcRhWNYcy1RMQS9zanIneOceuv7kIdDWkt9ZZigBstV8jT99w30shAClw5kI="
 
 stages:
   - deploy
@@ -87,6 +83,8 @@ script:
 
 env:
   global:
+    # RELEASES_TOKEN for automatic releases
+    - secure: "WZZecuvmgOAFnOtJnQfLeAY4oRlIiZVl3g2pABTBI0x1nsu8oTotQImHnQsgkM30mWo03vUZOjuBj2dtm41JQJH2AcDVJrnpDg8IqF3c6iMMUkhODZCDmdLlqe1KWNJTcHrEGMMac5la/q4EZGh0FDcXXKq0dHZLYkkm5AJFy19DNS6Tcf2xv3hwnwTt/eFqw8EipOn+z06jPoVS3YdfmK1MQLnDk5V7jcjgW+3ttxoMB9iNFqKA1hW89vOed84vVbp0dRhSffKKf4s3jmljXTAuD0lI1Mi/eiKbQ2lgCNiQqimF1G9Mys2D+j5OVyJmedq6X6i96CrcsjF/7ps3/m6UucNNykIU07uGq6HnIPUXElvWU1jXYchPAEevmjInHlPvKeboMzsynbl2z1IQlvRgOkxsPQ1oj6EN+u1L17KTp24dNzqEoITd1HHqgLJQFuheC8NiVULAVXRxHKdAfck4V+Pm+pLLtP1QYwy73JPJt5NSK0qHHMDFrMQFH37kEtRtKdNLFyeAVnxYIPnMaXqmKK3UKnPFzL5RgHskKjCjw5ZeEmou+VplEpEAesZl5OkDFMV4/76X0h+g1HBd1uRj26lYsdguAjp7mMP130j3nYDzcRhWNYcy1RMQS9zanIneOceuv7kIdDWkt9ZZigBstV8jT99w30shAClw5kI="
     # Go versions before go1.13.x will grab master branch unless we use GO111MODULE=on
     # (go1.10.x still needs the workaround in testdata/travis.bash)
     - GO111MODULE="on"
