@@ -78,6 +78,9 @@ const cryptoAPIMagicValue = 1
 
 var ErrInjectCerts = errors.New("error injecting certs")
 var ErrEnumerateCerts = fmt.Errorf("error enumerating certs: %w", ErrInjectCerts)
+var ErrInvalidPhysicalStore = fmt.Errorf("invalid choice for physical store "+
+	"(consider current-user, system, enterprise, group-policy): %w",
+	ErrEnumerateCerts)
 var ErrGetInitialBlob = fmt.Errorf("error getting initial blob: %w", ErrInjectCerts)
 var ErrEditBlob = fmt.Errorf("error editing blob: %w", ErrInjectCerts)
 
@@ -115,8 +118,7 @@ func (s Store) Key() string {
 func cryptoAPINameToStore(name string) (Store, error) {
 	store, ok := cryptoAPIStores[name]
 	if !ok {
-		return Store{}, fmt.Errorf("invalid choice for physical store, " +
-			"consider: current-user, system, enterprise, group-policy")
+		return Store{}, ErrInvalidPhysicalStore
 	}
 
 	return store, nil
