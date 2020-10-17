@@ -50,17 +50,20 @@ func TestRegistryKeyNames(t *testing.T) {
 		store, ok := cryptoAPIStores[tc.Physical]
 		if !ok {
 			t.Errorf("test %q is invalid (store not defined)", tc.Physical)
+
 			continue
 		}
 
 		if err := cryptoAPIFlagLogicalStoreName.CfSetValue(tc.Logical); err != nil {
 			t.Errorf("test %q: %v", tc.Name, err)
+
 			continue
 		}
 
 		key := store.Key()
 		if key != tc.Key {
 			t.Errorf("test %q: expected key to be %q, got %q", tc.Name, tc.Key, key)
+
 			continue
 		}
 
@@ -81,6 +84,7 @@ func TestRegistryKeyNames(t *testing.T) {
 		base := store.Base
 		if base != tc.Base {
 			t.Errorf("test %q: expected base to be %v, got %v", tc.Name, base2str(t, tc.Base), base2str(t, base))
+
 			continue
 		}
 

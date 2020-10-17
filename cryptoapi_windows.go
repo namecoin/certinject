@@ -178,6 +178,7 @@ func injectCertCryptoAPI(derBytes []byte) {
 	store, err := cryptoAPINameToStore(cryptoAPIFlagPhysicalStoreName.Value())
 	if err != nil {
 		log.Errorf("error: %s", err.Error())
+
 		return
 	}
 
@@ -192,6 +193,7 @@ func injectCertCryptoAPI(derBytes []byte) {
 		fingerprintHexUpperList, err = allFingerprintsInStore(registryBase, storeKey)
 		if err != nil {
 			log.Errorf("Couldn't enumerate certificates in store: %s", err)
+
 			return
 		}
 	}
@@ -203,6 +205,7 @@ func injectCertCryptoAPI(derBytes []byte) {
 	if len(fingerprintHexUpperList) == 0 {
 		if derBytes == nil {
 			log.Errorf("No cert specified")
+
 			return
 		}
 
@@ -229,12 +232,14 @@ func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
 	blob, err := readInputBlob(derBytes, registryBase, storeKey+`\`+fingerprintHexUpper)
 	if err != nil {
 		log.Errorf("Couldn't read input blob: %s", err)
+
 		return
 	}
 
 	err = editBlob(blob)
 	if err != nil {
 		log.Errorf("Couldn't edit blob: %s", err)
+
 		return
 	}
 
@@ -242,6 +247,7 @@ func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
 	blobBytes, err := blob.Marshal()
 	if err != nil {
 		log.Errorf("Couldn't marshal cert blob: %s", err)
+
 		return
 	}
 

@@ -37,7 +37,7 @@ jobs:
         # lint with mandatory linters only.  Add more like this:
         # --disable=foo,bar
         - go get -v -d -t ./...
-        - bash testdata/golangci-linter.bash --disable=exhaustive,godot,gofumpt,nlreturn
+        - bash testdata/golangci-linter.bash --disable=exhaustive,godot,gofumpt
     - os: linux
       stage: lint
       language: go
