@@ -212,47 +212,6 @@ func injectCertCryptoAPI(derBytes []byte) {
 		fingerprintHexUpperList = append(fingerprintHexUpperList, strings.ToUpper(fingerprintHex))
 	}
 
-	// Format documentation of Microsoft's "Certificate Registry Blob":
-
-	// 5c 00 00 00 // propid
-	// 01 00 00 00 // unknown (possibly a version or flags field; value is always the same in my testing)
-	// 04 00 00 00 // size (little endian)
-	// subject public key bit length // data[size]
-
-	// 19 00 00 00
-	// 01 00 00 00
-	// 10 00 00 00
-	// MD5 of ECC pubkey of certificate
-
-	// 0f 00 00 00
-	// 01 00 00 00
-	// 20 00 00 00
-	// Signature Hash
-
-	// 03 00 00 00
-	// 01 00 00 00
-	// 14 00 00 00
-	// Cert SHA1 hash
-
-	// 14 00 00 00
-	// 01 00 00 00
-	// 14 00 00 00
-	// Key Identifier
-
-	// 04 00 00 00
-	// 01 00 00 00
-	// 10 00 00 00
-	// Cert MD5 hash
-
-	// 20 00 00 00
-	// 01 00 00 00
-	// cert length
-	// cert
-
-	// But, guess what?  All you need is the "20" record.
-	// Windows will happily regenerate all the others for you, whenever you actually try to use the certificate.
-	// How cool is that?
-
 	for _, fingerprintHexUpper := range fingerprintHexUpperList {
 		injectSingleCertCryptoAPI(derBytes, fingerprintHexUpper, registryBase, storeKey)
 	}
