@@ -6,16 +6,19 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
-func TestRegistryKeyNames(t *testing.T) {
+type registryKeyNamesTestCase struct {
+	Name     string // for logs
+	Physical string // from user flag
+	Logical  string // from user flag
+	Key      string // registry
+	Base     registry.Key
+}
+
+func registryKeyNamesTestData() []registryKeyNamesTestCase {
 	cu := registry.CURRENT_USER
 	lm := registry.LOCAL_MACHINE
-	tests := []struct {
-		Name     string // for logs
-		Physical string // from user flag
-		Logical  string // from user flag
-		Key      string // registry
-		Base     registry.Key
-	}{
+
+	return []registryKeyNamesTestCase{
 		{"system+root", "system", "Root", `SOFTWARE\Microsoft\SystemCertificates\Root\Certificates`, lm},
 		{"system+CA", "system", "CA", `SOFTWARE\Microsoft\SystemCertificates\CA\Certificates`, lm},
 		{"system+My", "system", "My", `SOFTWARE\Microsoft\SystemCertificates\My\Certificates`, lm},
@@ -34,6 +37,12 @@ func TestRegistryKeyNames(t *testing.T) {
 		{"group+My", "group-policy", "My", `SOFTWARE\Policies\Microsoft\SystemCertificates\My\Certificates`, lm},
 		{"group+Trust", "group-policy", "Trust", `SOFTWARE\Policies\Microsoft\SystemCertificates\Trust\Certificates`, lm},
 	}
+}
+
+func TestRegistryKeyNames(t *testing.T) {
+	cu := registry.CURRENT_USER
+	lm := registry.LOCAL_MACHINE
+	tests := registryKeyNamesTestData()
 
 	for _, tc := range tests {
 		store, ok := cryptoAPIStores[tc.Physical]
