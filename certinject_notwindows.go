@@ -8,7 +8,6 @@ package certinject
 
 // InjectCert injects the given cert into all configured trust stores.
 func InjectCert(derBytes []byte) {
-
 	if nssFlag.Value() {
 		injectCertNSS(derBytes)
 	}
@@ -16,9 +15,7 @@ func InjectCert(derBytes []byte) {
 
 // CleanCerts cleans expired certs from all configured trust stores.
 func CleanCerts() {
-
 	if nssFlag.Value() {
 		cleanCertsNSS()
 	}
-
 }
