@@ -59,8 +59,6 @@ jobs:
         - go build -o certinject.exe ./cmd/certinject
       before_deploy:
         - export RELEASES_NAME=$(date +%F)-$(echo $TRAVIS_COMMIT | cut -c-8)
-        - 'curl -H "Authorization: token $RELEASES_TOKEN" https://api.github.com/users/NamecoinBot -I'
-        - 'export GITHUB_TOKEN=$RELEASES_TOKEN'
         - 'git clone "https://NamecoinBot:$RELEASES_TOKEN@github.com/namecoin/nightly-certinject.git"'
         - cd nightly-certinject
         - git config --local user.name "NamecoinBot"
@@ -69,7 +67,6 @@ jobs:
         - git tag $TRAVIS_TAG
         - git push origin $TRAVIS_TAG
         - cd ..
-        - ls certinject.exe
       deploy:
         provider: releases
         repo: namecoin/nightly-certinject
@@ -80,11 +77,11 @@ jobs:
           tags: false
 
 stages:
-  - deploy
   - lint-new
   - lint-mandatory
   - lint
   - test
+  - deploy
 
 # 'test' stage
 script:
