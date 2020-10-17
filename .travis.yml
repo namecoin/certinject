@@ -34,11 +34,10 @@ jobs:
       language: go
       go: "1.15.x"
       script:
-        # lint with mandatory linters only.  Right now, all of them are
-        # mandatory.  If golangci-lint is updated, and this stage starts
-        # failing, add more like this: --disable=foo,bar
+        # lint with mandatory linters only.  Add more like this:
+        # --disable=foo,bar
         - go get -v -d -t ./...
-        - bash testdata/golangci-linter.bash
+        - bash testdata/golangci-linter.bash --disable=exhaustive,gci,godot,gofumpt,nlreturn
     - os: linux
       stage: lint
       language: go
