@@ -61,6 +61,13 @@ jobs:
         - export RELEASES_NAME=$(date +%F)-$(echo $TRAVIS_COMMIT | cut -c-8)
         - 'curl -H "Authorization: token $RELEASES_TOKEN" https://api.github.com/users/NamecoinBot -I'
         - 'export GITHUB_TOKEN=$RELEASES_TOKEN'
+        - 'git clone "https://NamecoinBot:$RELEASES_TOKEN@github.com/namecoin/nightly-certinject.git"'
+        - cd nightly-certinject
+        - git config --local user.name "NamecoinBot"
+        - git config --local user.email "githubbot@namecoin.org"
+        - export TRAVIS_TAG=$RELEASES_NAME
+        - git tag $TRAVIS_TAG
+        - git push origin $TRAVIS_TAG
       deploy:
         provider: releases
         repo: namecoin/nightly-certinject
