@@ -30,6 +30,16 @@ jobs:
         - go get -v -d -t ./...
         - bash testdata/golangci-linter.bash --new-from-rev=HEAD~ # new changes
     - os: linux
+      stage: lint-mandatory
+      language: go
+      go: "1.15.x"
+      script:
+        # lint with mandatory linters only.  Right now, all of them are
+        # mandatory.  If golangci-lint is updated, and this stage starts
+        # failing, add more like this: --disable=foo,bar
+        - go get -v -d -t ./...
+        - bash testdata/golangci-linter.bash
+    - os: linux
       stage: lint
       language: go
       go: "1.15.x"
@@ -40,6 +50,7 @@ jobs:
 
 stages:
   - lint-new
+  - lint-mandatory
   - lint
   - test
 
