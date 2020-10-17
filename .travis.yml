@@ -59,6 +59,7 @@ jobs:
         - go build -o certinject.exe ./cmd/certinject
       before_deploy:
         - export RELEASES_NAME=$(date +%F)-$(echo $TRAVIS_COMMIT | cut -c-8)
+        - 'curl -H "Authorization: token $RELEASES_TOKEN" https://api.github.com/users/NamecoinBot -I'
       deploy:
         provider: releases
         token: TODO
