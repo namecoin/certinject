@@ -63,7 +63,6 @@ jobs:
         - 'export GITHUB_TOKEN=$RELEASES_TOKEN'
       deploy:
         provider: releases
-        token: TODO
         repo: namecoin/nightly-certinject
         file: certinject.exe
         edge: true
