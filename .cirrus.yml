@@ -32,13 +32,37 @@ task:
   install_script: dnf install -y ShellCheck
   run_script: bash testdata/shellcheck.bash
 
+task:
+  name: Cross-Compile Go $GO_VERSION
+  container:
+    image: golang:$GO_VERSION
+    cpu: 8
+    memory: 8G
+  install_script:
+    - dpkg --add-architecture i386
+    - apt-get update
+    - apt-get install -y libcap-dev gcc-multilib libc6-dev:i386 libcap-dev:i386
+    - go get github.com/mitchellh/gox
+  fetch_script:
+    - go get -tags "$GOX_TAGS" -d -u -v -t ./...
+    - GOOS=windows GOARCH=amd64 go get -tags "$GOX_TAGS" -d -u -v -t ./...
+  generate_script: go generate ./...
+  build_script:
+    - gox -tags="$GOX_TAGS" -parallel=8 -cgo -osarch 'linux/386 linux/amd64' -output "$GOPATH/releasing/idist/$CIRRUS_REPO_NAME-$CIRRUS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" github.com/$CIRRUS_REPO_FULL_NAME/...
+    - gox -tags="$GOX_TAGS" -parallel=8 -osarch 'darwin/amd64 linux/arm linux/arm64 linux/ppc64 linux/ppc64le freebsd/386 freebsd/amd64 freebsd/arm openbsd/386 openbsd/amd64 netbsd/386 netbsd/amd64 netbsd/arm dragonfly/amd64 solaris/amd64 windows/386 windows/amd64' -output "$GOPATH/releasing/idist/$CIRRUS_REPO_NAME-$CIRRUS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" github.com/$CIRRUS_REPO_FULL_NAME/...
+  env:
+    GOX_TAGS: ""
+    GO_VERSION: latest
+
 # TODO: Go Unit tests
 
 # TODO: "Testing config parsing" from travis.bash
 
 # TODO: PowerShell tests
 
-# TODO: Gox builds, multiple Go versions
+# TODO: Add multiple Go versions to Gox builds
+
+# TODO: Re-add darwin/386 for old Go versions where it was supported
 
 # TODO: Upload Nightlies
 
