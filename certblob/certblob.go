@@ -40,7 +40,7 @@ func (prop *Property) Marshal() ([]byte, error) {
 		return nil, fmt.Errorf("nil: %w", ErrPropertyInvalidValue)
 	}
 
-	if len(prop.Value) > math.MaxUint32 {
+	if uint64(len(prop.Value)) > math.MaxUint32 {
 		return nil, fmt.Errorf("overflows uint32 size: %w", ErrPropertyInvalidValue)
 	}
 
