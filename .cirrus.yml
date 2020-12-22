@@ -33,6 +33,18 @@ task:
   lint_script: bash testdata/shellcheck.bash
 
 task:
+  name: Unit Tests Go $GO_VERSION
+  container:
+    image: golang:$GO_VERSION
+  fetch_script:
+    - go get -tags "$GOX_TAGS" -d -u -v -t ./...
+  generate_script: go generate ./...
+  test_script: go test -tags "$GOX_TAGS" -v ./...
+  env:
+    GOX_TAGS: ""
+    GO_VERSION: latest
+
+task:
   name: Cross-Compile Go $GO_VERSION
   container:
     image: golang:$GO_VERSION
@@ -51,13 +63,13 @@ task:
     GOX_TAGS: ""
     GO_VERSION: latest
 
-# TODO: Go Unit tests
+# TODO: Add Windows unit tests
 
 # TODO: "Testing config parsing" from travis.bash
 
 # TODO: PowerShell tests
 
-# TODO: Add multiple Go versions to Gox builds
+# TODO: Add multiple Go versions to Gox builds and unit tests
 
 # TODO: Re-add darwin/386 for old Go versions where it was supported
 
