@@ -46,6 +46,7 @@ task:
 
 task:
   name: Cross-Compile Go $GO_VERSION
+  alias: Cross-Compile
   container:
     image: golang:$GO_VERSION
     cpu: 8
@@ -68,13 +69,30 @@ task:
     GOX_TAGS: ""
     GO_VERSION: latest
 
+task:
+  name: TLS Handshake Tests
+  windows_container:
+    image: cirrusci/windowsservercore:2019
+  depends_on:
+    - "Cross-Compile"
+  install_script:
+    - curl -o idist.tar.gz http://%CIRRUS_HTTP_CACHE_HOST%/cross_compile_bin_go_latest
+    - tar -xf idist.tar.gz
+    - 'copy idist\%CIRRUS_REPO_NAME%-%CIRRUS_TAG%-windows_amd64\bin\* %cd%\'
+  test_script:
+    - SET PATH=%PATH%;%cd%
+    - powershell -ExecutionPolicy Unrestricted -File "testdata/ci-all-tests.ps1"
+  env:
+    GOX_TAGS: ""
+    GO_VERSION: latest
+
 # TODO: Add Windows unit tests
 
 # TODO: "Testing config parsing" from travis.bash
 
-# TODO: PowerShell tests
-
 # TODO: Add multiple Go versions to Gox builds and unit tests
+
+# TODO: Add debug stripping and path stripping to Gox for repro builds
 
 # TODO: Re-add darwin/386 for old Go versions where it was supported
 
