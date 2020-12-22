@@ -1,4 +1,5 @@
 task:
+  alias: Go Lint
   container:
     image: golangci/golangci-lint:latest
   generate_script: go generate ./...
@@ -34,6 +35,7 @@ task:
 
 task:
   name: Unit Tests Go $GO_VERSION
+  alias: Unit Tests
   container:
     image: golang:$GO_VERSION
   fetch_script:
@@ -86,6 +88,31 @@ task:
     GOX_TAGS: ""
     GO_VERSION: latest
 
+task:
+  name: Release
+  container:
+    image: golang:latest
+  depends_on:
+    - Go Lint
+    - ShellCheck
+    - Unit Tests
+    - Cross-Compile
+    - TLS Handshake Tests
+  bin_cache:
+    folder: "idist"
+    fingerprint_script:
+      - "echo cross_compile_bin_go_%GO_VERSION%"
+    reupload_on_changes: false
+    populate_script:
+      - "mkdir idist"
+  install_script:
+    - go get github.com/tcnksm/ghr
+  release_script:
+    - bash "testdata/release.bash"
+  env:
+    GOX_TAGS: ""
+    GO_VERSION: latest
+
 # TODO: Add Windows unit tests
 
 # TODO: "Testing config parsing" from travis.bash
@@ -96,7 +123,9 @@ task:
 
 # TODO: Re-add darwin/386 for old Go versions where it was supported
 
-# TODO: Upload Nightlies
+# TODO: Fix upload repo for tagged commits (don't use Nightly repo for this)
+
+# TODO: Skip Signify and Release if it's not applicable
 
 # TODO: Signify Nightlies
 
