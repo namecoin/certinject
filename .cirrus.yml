@@ -57,8 +57,13 @@ task:
     - GOOS=windows GOARCH=amd64 go get -tags "$GOX_TAGS" -d -u -v -t ./...
   generate_script: go generate ./...
   build_script:
+    - rm -rf idist
     # Nothing in this repo needs cgo.
     - CGO_ENABLED=0 gox -tags="$GOX_TAGS" -parallel=8 -osarch 'darwin/amd64 linux/386 linux/amd64 linux/arm linux/arm64 linux/ppc64 linux/ppc64le freebsd/386 freebsd/amd64 freebsd/arm openbsd/386 openbsd/amd64 netbsd/386 netbsd/amd64 netbsd/arm dragonfly/amd64 solaris/amd64 windows/386 windows/amd64' -output "$GOPATH/releasing/idist/$CIRRUS_REPO_NAME-$CIRRUS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" github.com/$CIRRUS_REPO_FULL_NAME/...
+    - mv $GOPATH/releasing/idist ./idist
+  upload_script:
+    - tar -caf idist.tar.gz idist
+    - curl -s -X POST --data-binary @idist.tar.gz http://$CIRRUS_HTTP_CACHE_HOST/cross_compile_bin_go_latest
   env:
     GOX_TAGS: ""
     GO_VERSION: latest
@@ -74,6 +79,8 @@ task:
 # TODO: Re-add darwin/386 for old Go versions where it was supported
 
 # TODO: Upload Nightlies
+
+# TODO: Signify Nightlies
 
 # TODO: IRC notifications on failure
 
