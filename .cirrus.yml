@@ -20,9 +20,25 @@ task:
       type: text/json
       format: golangci
 
+# TODO: Go Lint Windows
+
 task:
   name: ShellCheck
   container:
     image: fedora:latest
   install_script: dnf install -y ShellCheck
   run_script: bash testdata/shellcheck.bash
+
+# TODO: Go Unit tests
+
+# TODO: "Testing config parsing" from travis.bash
+
+# TODO: PowerShell tests
+
+# TODO: Gox builds, multiple Go versions
+
+# TODO: Upload Nightlies
+
+# TODO: IRC notifications on failure
+
+# TODO: Cron
