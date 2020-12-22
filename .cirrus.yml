@@ -1,15 +1,17 @@
 task:
-  name: GolangCI Lint Linux
   container:
     image: golangci/golangci-lint:latest
   generate_script: go generate ./...
   run_script: golangci-lint run --no-config --enable-all --skip-files "file.go" --skip-files "nss.go" --disable gochecknoglobals,gomnd $GOLANGCI_ARGS -v --out-format json > lint-report.json
   matrix:
-    - env:
+    - name: Go Lint Linux New
+      env:
         GOLANGCI_ARGS: "--new-from-rev=HEAD~"
-    - env:
+    - name: Go Lint Linux Mandatory
+      env:
         GOLANGCI_ARGS: "--disable=errorlint,exhaustive,exhaustivestruct,gci,godot,gofumpt,nlreturn,paralleltest"
-    - env:
+    - name: Go Lint Linux
+      env:
         GOLANGCI_ARGS: ""
       allow_failures: true
   always:
