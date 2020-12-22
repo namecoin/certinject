@@ -8,7 +8,7 @@ task:
     - env:
         GOLANGCI_ARGS: "--new-from-rev=HEAD~"
     - env:
-        GOLANGCI_ARGS: "--disable=exhaustive,gci,godot,gofumpt,nlreturn"
+        GOLANGCI_ARGS: "--disable=errorlint,exhaustive,exhaustivestruct,gci,godot,gofumpt,nlreturn,paralleltest"
     - env:
         GOLANGCI_ARGS: ""
       allow_failures: true
