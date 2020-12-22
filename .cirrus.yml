@@ -19,3 +19,10 @@ task:
       path: lint-report.json
       type: text/json
       format: golangci
+
+task:
+  name: ShellCheck
+  container:
+    image: fedora:latest
+  install_script: dnf install -y ShellCheck
+  run_script: bash testdata/shellcheck.bash
