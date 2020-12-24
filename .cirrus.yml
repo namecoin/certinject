@@ -1,3 +1,7 @@
+# Attention: if you submit an improvement for a Namecoin Cirrus config, please
+# file a GitHub issue about it at the namecoin/meta repo, so that we can make
+# sure it propagates to all the other Namecoin repos.  Thanks!
+
 task:
   alias: Go Lint
   container:
