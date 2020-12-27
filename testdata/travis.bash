@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -ex
 
 # set GOPATH if empty (travis sets it, but useful for humans)

@@ -1,0 +1,167 @@
+# Attention: if you submit an improvement for a Namecoin Cirrus config, please
+# file a GitHub issue about it at the namecoin/meta repo, so that we can make
+# sure it propagates to all the other Namecoin repos.  Thanks!
+
+task:
+  alias: Go Lint
+  container:
+    image: golangci/golangci-lint:latest
+  generate_script: go generate ./...
+  lint_script: golangci-lint run --no-config --enable-all --skip-files "file.go" --skip-files "nss.go" --disable gochecknoglobals,gomnd $GOLANGCI_ARGS -v --out-format json > lint-report.json
+  matrix:
+    - name: Go Lint $GOOS New
+      env:
+        GOLANGCI_ARGS: "--new-from-rev=HEAD~"
+    - name: Go Lint $GOOS Mandatory
+      env:
+        GOLANGCI_ARGS: "--disable=errorlint,exhaustive,exhaustivestruct,gci,godot,gofumpt,nlreturn,paralleltest"
+    - name: Go Lint $GOOS
+      env:
+        GOLANGCI_ARGS: ""
+      allow_failures: true
+  matrix:
+    - env:
+        GOOS: linux
+    - env:
+        GOOS: windows
+  always:
+    golangci_artifacts:
+      path: lint-report.json
+      type: text/json
+      format: golangci
+
+task:
+  name: ShellCheck
+  container:
+    image: fedora:latest
+    cpu: 1
+    memory: 1G
+  install_script: dnf install -y ShellCheck
+  lint_script: bash testdata/shellcheck.bash
+
+task:
+  name: Unit Tests Go $GO_VERSION
+  alias: Unit Tests
+  container:
+    image: golang:$GO_VERSION
+  fetch_script:
+    - go get -tags "$GOX_TAGS" -d -u -v -t ./...
+  generate_script: go generate ./...
+  test_script: go test -tags "$GOX_TAGS" -v ./...
+  env:
+    GOX_TAGS: ""
+    GO_VERSION: latest
+
+task:
+  name: Cross-Compile Go $GO_VERSION
+  alias: Cross-Compile
+  container:
+    image: golang:$GO_VERSION
+    cpu: 8
+    memory: 8G
+  install_script:
+    - go get github.com/mitchellh/gox
+  fetch_script:
+    - go get -tags "$GOX_TAGS" -d -u -v -t ./...
+    - GOOS=windows GOARCH=amd64 go get -tags "$GOX_TAGS" -d -u -v -t ./...
+  generate_script: go generate ./...
+  build_script:
+    - rm -rf idist
+    # Nothing in this repo needs cgo.
+    - CGO_ENABLED=0 gox -tags="$GOX_TAGS" -parallel=8 -osarch 'darwin/amd64 linux/386 linux/amd64 linux/arm linux/arm64 linux/ppc64 linux/ppc64le freebsd/386 freebsd/amd64 freebsd/arm openbsd/386 openbsd/amd64 netbsd/386 netbsd/amd64 netbsd/arm dragonfly/amd64 solaris/amd64 windows/386 windows/amd64' -output "$GOPATH/releasing/idist/$CIRRUS_REPO_NAME-$CIRRUS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" github.com/$CIRRUS_REPO_FULL_NAME/...
+    - mv $GOPATH/releasing/idist ./idist
+  upload_script:
+    - tar -caf idist.tar.gz idist
+    - curl -s -X POST --data-binary @idist.tar.gz http://$CIRRUS_HTTP_CACHE_HOST/cross_compile_bin_go_latest
+  env:
+    GOX_TAGS: ""
+    GO_VERSION: latest
+
+task:
+  name: TLS Handshake Tests
+  windows_container:
+    image: cirrusci/windowsservercore:2019
+  depends_on:
+    - "Cross-Compile"
+  install_script:
+    - curl -o idist.tar.gz http://%CIRRUS_HTTP_CACHE_HOST%/cross_compile_bin_go_latest
+    - tar -xf idist.tar.gz
+    - 'copy idist\%CIRRUS_REPO_NAME%-%CIRRUS_TAG%-windows_amd64\bin\* %cd%\'
+  test_script:
+    - SET PATH=%PATH%;%cd%
+    - powershell -ExecutionPolicy Unrestricted -File "testdata/ci-all-tests.ps1"
+  env:
+    GOX_TAGS: ""
+    GO_VERSION: latest
+
+task:
+  # Cirrus Artifact Upload
+  name: Artifact Upload
+  container:
+    image: fedora:latest
+    cpu: 1
+    memory: 1G
+  depends_on:
+    - Go Lint
+    - ShellCheck
+    - Unit Tests
+    - Cross-Compile
+    - TLS Handshake Tests
+  install_script:
+    - curl -o idist.tar.gz http://$CIRRUS_HTTP_CACHE_HOST/cross_compile_bin_go_latest
+    - tar -xaf idist.tar.gz
+  dist_script:
+    - bash "testdata/dist.bash"
+  binaries_artifacts:
+    path: "dist/*"
+  env:
+    GOX_TAGS: ""
+    GO_VERSION: latest
+
+task:
+  # GitHub Release Upload
+  name: GitHub Release
+  container:
+    image: golang:latest
+    cpu: 1
+    memory: 1G
+  depends_on:
+    - Go Lint
+    - ShellCheck
+    - Unit Tests
+    - Cross-Compile
+    - TLS Handshake Tests
+  bin_cache:
+    folder: "idist"
+    fingerprint_script:
+      - "echo cross_compile_bin_go_%GO_VERSION%"
+    reupload_on_changes: false
+    populate_script:
+      - "mkdir idist"
+  install_script:
+    - go get github.com/tcnksm/ghr
+  release_script:
+    - bash "testdata/release.bash"
+  env:
+    GOX_TAGS: ""
+    GO_VERSION: latest
+
+# TODO: Add Windows unit tests
+
+# TODO: "Testing config parsing" from travis.bash
+
+# TODO: Add multiple Go versions to Gox builds and unit tests
+
+# TODO: Add debug stripping and path stripping to Gox for repro builds
+
+# TODO: Re-add darwin/386 for old Go versions where it was supported
+
+# TODO: Fix upload repo for tagged commits (don't use Nightly repo for this)
+
+# TODO: Skip Signify and Release if it's not applicable
+
+# TODO: Signify Nightlies
+
+# TODO: IRC notifications on failure
+
+# TODO: Cron
