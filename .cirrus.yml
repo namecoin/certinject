@@ -81,6 +81,8 @@ task:
   name: TLS Handshake Tests
   windows_container:
     image: cirrusci/windowsservercore:2019
+    cpu: 1
+    memory: 1G
   depends_on:
     - "Cross-Compile"
   install_script:
