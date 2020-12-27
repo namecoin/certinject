@@ -34,6 +34,8 @@ task:
   name: ShellCheck
   container:
     image: fedora:latest
+    cpu: 1
+    memory: 1G
   install_script: dnf install -y ShellCheck
   lint_script: bash testdata/shellcheck.bash
 
@@ -97,6 +99,8 @@ task:
   name: Artifact Upload
   container:
     image: fedora:latest
+    cpu: 1
+    memory: 1G
   depends_on:
     - Go Lint
     - ShellCheck
@@ -119,6 +123,8 @@ task:
   name: GitHub Release
   container:
     image: golang:latest
+    cpu: 1
+    memory: 1G
   depends_on:
     - Go Lint
     - ShellCheck
