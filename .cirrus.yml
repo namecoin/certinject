@@ -120,6 +120,7 @@ task:
 
 task:
   # GitHub Release Upload
+  # TODO: implement this.
   name: GitHub Release
   container:
     image: golang:latest
@@ -142,6 +143,7 @@ task:
     - go get github.com/tcnksm/ghr
   release_script:
     - bash "testdata/release.bash"
+  allow_failures: true
   env:
     GOX_TAGS: ""
     GO_VERSION: latest
