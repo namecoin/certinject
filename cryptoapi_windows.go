@@ -95,7 +95,7 @@ var ErrEditBlob = fmt.Errorf("error editing blob: %w", ErrInjectCerts)
 var (
 	// cryptoAPIStores consists of every implemented store.
 	// when adding a new one, the `%s` variable is optional.
-	// if `%s` exists in the Logical string, it is replaced with the value of -store flag
+	// if `%s` exists in the Logical string, it is replaced with the value of -logical-store flag
 	cryptoAPIStores = map[string]Store{
 		"current-user": {registry.CURRENT_USER, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
 		"system":       {registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
@@ -108,7 +108,7 @@ var (
 type Store struct {
 	Base     registry.Key
 	Physical string
-	Logical  string // may contain a %s, in which it would be replaced by the -store flag
+	Logical  string // may contain a %s, in which it would be replaced by the -logical-store flag
 }
 
 // String returns a human readable string (only useful for debug logs).
