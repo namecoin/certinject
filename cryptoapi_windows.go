@@ -282,24 +282,7 @@ func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
 	}
 
 	if setMagicName.Value() != "" {
-		// Add an extra registry value that serves as a "magic tag".  This will
-		// be ignored by CryptoAPI, but can be recognized by software that
-		// knows to look for it.  Example uses:
-		//
-		// * Indicating that a certificate is a Namecoin dehydrated
-		//   certificate, and should be deleted once it reaches a certain age
-		//   to avoid leaving browsing history in the registry.
-		// * Indicating that a certificate is a Namecoin root certificate, and
-		//   should be exempt from a Namecoin name constraint exclusion that is
-		//   applied to all other root CA's.
-		//
-		// To satisfy the first example use case, we have to delete it before
-		// we create it, so that we make sure that the "last modified" metadata
-		// gets updated.  If an error occurs during deletion, we ignore it,
-		// since it probably just means it wasn't there already.
-		_ = certKey.DeleteValue(setMagicName.Value())
-
-		err = certKey.SetDWordValue(setMagicName.Value(), uint32(setMagicData.Value()))
+		err = applyMagic(certKey)
 		if err != nil {
 			log.Errorf("Couldn't set magic registry value for certificate: %s", err)
 			return
@@ -312,6 +295,26 @@ func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
 		log.Errorf("Couldn't set blob registry value for certificate: %s", err)
 		return
 	}
+}
+
+// Add an extra registry value that serves as a "magic tag".  This will be
+// ignored by CryptoAPI, but can be recognized by software that knows to look
+// for it.  Example uses:
+//
+// * Indicating that a certificate is a Namecoin dehydrated certificate, and
+//   should be deleted once it reaches a certain age to avoid leaving browsing
+//   history in the registry.
+// * Indicating that a certificate is a Namecoin root certificate, and should
+//   be exempt from a Namecoin name constraint exclusion that is applied to all
+//   other root CA's.
+func applyMagic(certKey registry.Key) error {
+	// To satisfy the first example use case, we have to delete it before we
+	// create it, so that we make sure that the "last modified" metadata gets
+	// updated.  If an error occurs during deletion, we ignore it, since it
+	// probably just means it wasn't there already.
+	_ = certKey.DeleteValue(setMagicName.Value())
+
+	return certKey.SetDWordValue(setMagicName.Value(), uint32(setMagicData.Value()))
 }
 
 func editBlob(blob certblob.Blob) error {
