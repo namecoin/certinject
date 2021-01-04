@@ -71,10 +71,22 @@ var (
 		"permitted-uri", "", "Permitted URI domain")
 	nameConstraintsExcludedURI = cflag.String(nameConstraintsFlagGroup,
 		"excluded-uri", "", "Excluded URI domain")
+	setMagicName = cflag.String(cryptoAPIFlagGroup, "set-magic-name", "",
+		"Set a magic tag with this name")
+	setMagicData = cflag.Int(cryptoAPIFlagGroup, "set-magic-data", 1,
+		"Set a magic tag with this data")
+	skipMagicName = cflag.String(cryptoAPIFlagGroup, "skip-magic-name", "",
+		"Don't touch certificates with this magic tag name")
+	skipMagicData = cflag.Int(cryptoAPIFlagGroup, "skip-magic-data", 1,
+		"Don't touch certificates with this magic tag data")
+	expirableMagicName = cflag.String(cryptoAPIFlagGroup,
+		"expirable-magic-name", "",
+		"Remove certificates with this magic tag name if they are too old "+
+			"(see -certstore.expire flag)")
+	expirableMagicData = cflag.Int(cryptoAPIFlagGroup, "expirable-magic-data",
+		1, "Remove certificates with this magic tag data if they are too old "+
+			"(see -certstore.expire flag)")
 )
-
-const cryptoAPIMagicName = "Namecoin"
-const cryptoAPIMagicValue = 1
 
 var ErrInjectCerts = errors.New("error injecting certs")
 var ErrEnumerateCerts = fmt.Errorf("error enumerating certs: %w", ErrInjectCerts)
@@ -87,7 +99,7 @@ var ErrEditBlob = fmt.Errorf("error editing blob: %w", ErrInjectCerts)
 var (
 	// cryptoAPIStores consists of every implemented store.
 	// when adding a new one, the `%s` variable is optional.
-	// if `%s` exists in the Logical string, it is replaced with the value of -store flag
+	// if `%s` exists in the Logical string, it is replaced with the value of -logical-store flag
 	cryptoAPIStores = map[string]Store{
 		"current-user": {registry.CURRENT_USER, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
 		"system":       {registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
@@ -100,7 +112,7 @@ var (
 type Store struct {
 	Base     registry.Key
 	Physical string
-	Logical  string // may contain a %s, in which it would be replaced by the -store flag
+	Logical  string // may contain a %s, in which it would be replaced by the -logical-store flag
 }
 
 // String returns a human readable string (only useful for debug logs).
@@ -262,18 +274,25 @@ func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
 	}
 	defer certKey.Close()
 
-	// Add a magic value which indicates that the certificate is a
-	// Namecoin cert.  This will be used for deleting expired certs.
-	// However, we have to delete it before we create it,
-	// so that we make sure that the "last modified" metadata gets updated.
-	// If an error occurs during deletion, we ignore it,
-	// since it probably just means it wasn't there already.
-	_ = certKey.DeleteValue(cryptoAPIMagicName)
-
-	err = certKey.SetDWordValue(cryptoAPIMagicName, cryptoAPIMagicValue)
-	if err != nil {
-		log.Errorf("Couldn't set magic registry value for certificate: %s", err)
+	// Check for magic value indicating we should skip this cert
+	shouldSkip, _, err := certKey.GetIntegerValue(skipMagicName.Value())
+	if err == nil && shouldSkip == uint64(skipMagicData.Value()) {
+		// Magic value detected.  Skip.
 		return
+	}
+
+	applyRegistryValues(certKey, blobBytes)
+}
+
+func applyRegistryValues(certKey registry.Key, blobBytes []byte) {
+	var err error
+
+	if setMagicName.Value() != "" {
+		err = applyMagic(certKey)
+		if err != nil {
+			log.Errorf("Couldn't set magic registry value for certificate: %s", err)
+			return
+		}
 	}
 
 	// Create the registry value which holds the certificate.
@@ -282,6 +301,26 @@ func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
 		log.Errorf("Couldn't set blob registry value for certificate: %s", err)
 		return
 	}
+}
+
+// Add an extra registry value that serves as a "magic tag".  This will be
+// ignored by CryptoAPI, but can be recognized by software that knows to look
+// for it.  Example uses:
+//
+// * Indicating that a certificate is a Namecoin dehydrated certificate, and
+//   should be deleted once it reaches a certain age to avoid leaving browsing
+//   history in the registry.
+// * Indicating that a certificate is a Namecoin root certificate, and should
+//   be exempt from a Namecoin name constraint exclusion that is applied to all
+//   other root CA's.
+func applyMagic(certKey registry.Key) error {
+	// To satisfy the first example use case, we have to delete it before we
+	// create it, so that we make sure that the "last modified" metadata gets
+	// updated.  If an error occurs during deletion, we ignore it, since it
+	// probably just means it wasn't there already.
+	_ = certKey.DeleteValue(setMagicName.Value())
+
+	return certKey.SetDWordValue(setMagicName.Value(), uint32(setMagicData.Value()))
 }
 
 func editBlob(blob certblob.Blob) error {
@@ -501,14 +540,19 @@ func checkCertExpiredCryptoAPI(certStoreKey registry.Key, subKeyName string) (bo
 	}
 	defer certKey.Close()
 
+	if expirableMagicName.Value() == "" {
+		// Magic expiration is disabled.  Therefore don't consider it expired.
+		return false, nil
+	}
+
 	// Check for magic value
-	isNamecoin, _, err := certKey.GetIntegerValue(cryptoAPIMagicName)
+	isNamecoin, _, err := certKey.GetIntegerValue(expirableMagicName.Value())
 	if err != nil {
 		// Magic value wasn't found.  Therefore don't consider it expired.
 		return false, nil
 	}
 
-	if isNamecoin != cryptoAPIMagicValue {
+	if isNamecoin != uint64(expirableMagicData.Value()) {
 		// Magic value was found but it wasn't the one we recognize.  Therefore don't consider it expired.
 		return false, nil
 	}
