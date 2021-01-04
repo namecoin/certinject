@@ -75,6 +75,10 @@ var (
 		"Set a magic tag with this name")
 	setMagicData = cflag.Int(cryptoAPIFlagGroup, "set-magic-data", 1,
 		"Set a magic tag with this data")
+	skipMagicName = cflag.String(cryptoAPIFlagGroup, "skip-magic-name", "",
+		"Don't touch certificates with this magic tag name")
+	skipMagicData = cflag.Int(cryptoAPIFlagGroup, "skip-magic-data", 1,
+		"Don't touch certificates with this magic tag data")
 	expirableMagicName = cflag.String(cryptoAPIFlagGroup,
 		"expirable-magic-name", "",
 		"Remove certificates with this magic tag name if they are too old "+
@@ -269,6 +273,13 @@ func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
 		return
 	}
 	defer certKey.Close()
+
+	// Check for magic value indicating we should skip this cert
+	shouldSkip, _, err := certKey.GetIntegerValue(skipMagicName.Value())
+	if err == nil && shouldSkip == uint64(skipMagicData.Value()) {
+		// Magic value detected.  Skip.
+		return
+	}
 
 	if setMagicName.Value() != "" {
 		// Add an extra registry value that serves as a "magic tag".  This will
