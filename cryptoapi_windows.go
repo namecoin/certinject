@@ -98,8 +98,9 @@ var ErrEditBlob = fmt.Errorf("error editing blob: %w", ErrInjectCerts)
 
 var (
 	// cryptoAPIStores consists of every implemented store.
-	// when adding a new one, the `%s` variable is optional.
-	// if `%s` exists in the Logical string, it is replaced with the value of -logical-store flag
+	// When adding a new one, the `%s` variable is optional.
+	// If `%s` exists in the Logical string, it is replaced with the value of
+	// the -logical-store flag.
 	cryptoAPIStores = map[string]Store{
 		"current-user": {registry.CURRENT_USER, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
 		"system":       {registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
@@ -188,6 +189,7 @@ func injectCertCryptoAPI(derBytes []byte) {
 	store, err := cryptoAPINameToStore(cryptoAPIFlagPhysicalStoreName.Value())
 	if err != nil {
 		log.Errorf("error: %s", err.Error())
+
 		return
 	}
 
@@ -202,6 +204,7 @@ func injectCertCryptoAPI(derBytes []byte) {
 		fingerprintHexUpperList, err = allFingerprintsInStore(registryBase, storeKey)
 		if err != nil {
 			log.Errorf("Couldn't enumerate certificates in store: %s", err)
+
 			return
 		}
 	}
@@ -213,6 +216,7 @@ func injectCertCryptoAPI(derBytes []byte) {
 	if len(fingerprintHexUpperList) == 0 {
 		if derBytes == nil {
 			log.Errorf("No cert specified")
+
 			return
 		}
 
@@ -239,12 +243,14 @@ func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
 	blob, err := readInputBlob(derBytes, registryBase, storeKey+`\`+fingerprintHexUpper)
 	if err != nil {
 		log.Errorf("Couldn't read input blob: %s", err)
+
 		return
 	}
 
 	err = editBlob(blob)
 	if err != nil {
 		log.Errorf("Couldn't edit blob: %s", err)
+
 		return
 	}
 
@@ -252,6 +258,7 @@ func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
 	blobBytes, err := blob.Marshal()
 	if err != nil {
 		log.Errorf("Couldn't marshal cert blob: %s", err)
+
 		return
 	}
 
@@ -259,6 +266,7 @@ func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
 	certStoreKey, err := registry.OpenKey(registryBase, storeKey, registry.ALL_ACCESS)
 	if err != nil {
 		log.Errorf("Couldn't open cert store: %s", err)
+
 		return
 	}
 	defer certStoreKey.Close()
@@ -270,6 +278,7 @@ func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
 	certKey, _, err := registry.CreateKey(certStoreKey, fingerprintHexUpper, registry.ALL_ACCESS)
 	if err != nil {
 		log.Errorf("Couldn't create registry key for certificate: %s", err)
+
 		return
 	}
 	defer certKey.Close()
@@ -291,6 +300,7 @@ func applyRegistryValues(certKey registry.Key, blobBytes []byte) {
 		err = applyMagic(certKey)
 		if err != nil {
 			log.Errorf("Couldn't set magic registry value for certificate: %s", err)
+
 			return
 		}
 	}
@@ -299,6 +309,7 @@ func applyRegistryValues(certKey registry.Key, blobBytes []byte) {
 	err = certKey.SetBinaryValue("Blob", blobBytes)
 	if err != nil {
 		log.Errorf("Couldn't set blob registry value for certificate: %s", err)
+
 		return
 	}
 }
@@ -489,6 +500,7 @@ func cleanCertsCryptoAPI() {
 	store, err := cryptoAPINameToStore(cryptoAPIFlagPhysicalStoreName.Value())
 	if err != nil {
 		log.Errorf("error: %s", err.Error())
+
 		return
 	}
 
@@ -499,6 +511,7 @@ func cleanCertsCryptoAPI() {
 	certStoreKey, err := registry.OpenKey(registryBase, storeKey, registry.ALL_ACCESS)
 	if err != nil {
 		log.Errorf("Couldn't open cert store: %s", err)
+
 		return
 	}
 	defer certStoreKey.Close()
@@ -507,6 +520,7 @@ func cleanCertsCryptoAPI() {
 	subKeys, err := certStoreKey.ReadSubKeyNames(0)
 	if err != nil {
 		log.Errorf("Couldn't list certs in cert store: %s", err)
+
 		return
 	}
 
@@ -516,6 +530,7 @@ func cleanCertsCryptoAPI() {
 		expired, err := checkCertExpiredCryptoAPI(certStoreKey, subKeyName)
 		if err != nil {
 			log.Errorf("Couldn't check if cert is expired: %s", err)
+
 			return
 		}
 
