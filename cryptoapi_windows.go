@@ -71,10 +71,18 @@ var (
 		"permitted-uri", "", "Permitted URI domain")
 	nameConstraintsExcludedURI = cflag.String(nameConstraintsFlagGroup,
 		"excluded-uri", "", "Excluded URI domain")
+	setMagicName = cflag.String(cryptoAPIFlagGroup, "set-magic-name", "",
+		"Set a magic tag with this name")
+	setMagicData = cflag.Int(cryptoAPIFlagGroup, "set-magic-data", 1,
+		"Set a magic tag with this data")
+	expirableMagicName = cflag.String(cryptoAPIFlagGroup,
+		"expirable-magic-name", "",
+		"Remove certificates with this magic tag name if they are too old "+
+			"(see -certstore.expire flag)")
+	expirableMagicData = cflag.Int(cryptoAPIFlagGroup, "expirable-magic-data",
+		1, "Remove certificates with this magic tag data if they are too old "+
+			"(see -certstore.expire flag)")
 )
-
-const cryptoAPIMagicName = "Namecoin"
-const cryptoAPIMagicValue = 1
 
 var ErrInjectCerts = errors.New("error injecting certs")
 var ErrEnumerateCerts = fmt.Errorf("error enumerating certs: %w", ErrInjectCerts)
@@ -262,18 +270,29 @@ func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
 	}
 	defer certKey.Close()
 
-	// Add a magic value which indicates that the certificate is a
-	// Namecoin cert.  This will be used for deleting expired certs.
-	// However, we have to delete it before we create it,
-	// so that we make sure that the "last modified" metadata gets updated.
-	// If an error occurs during deletion, we ignore it,
-	// since it probably just means it wasn't there already.
-	_ = certKey.DeleteValue(cryptoAPIMagicName)
+	if setMagicName.Value() != "" {
+		// Add an extra registry value that serves as a "magic tag".  This will
+		// be ignored by CryptoAPI, but can be recognized by software that
+		// knows to look for it.  Example uses:
+		//
+		// * Indicating that a certificate is a Namecoin dehydrated
+		//   certificate, and should be deleted once it reaches a certain age
+		//   to avoid leaving browsing history in the registry.
+		// * Indicating that a certificate is a Namecoin root certificate, and
+		//   should be exempt from a Namecoin name constraint exclusion that is
+		//   applied to all other root CA's.
+		//
+		// To satisfy the first example use case, we have to delete it before
+		// we create it, so that we make sure that the "last modified" metadata
+		// gets updated.  If an error occurs during deletion, we ignore it,
+		// since it probably just means it wasn't there already.
+		_ = certKey.DeleteValue(setMagicName.Value())
 
-	err = certKey.SetDWordValue(cryptoAPIMagicName, cryptoAPIMagicValue)
-	if err != nil {
-		log.Errorf("Couldn't set magic registry value for certificate: %s", err)
-		return
+		err = certKey.SetDWordValue(setMagicName.Value(), uint32(setMagicData.Value()))
+		if err != nil {
+			log.Errorf("Couldn't set magic registry value for certificate: %s", err)
+			return
+		}
 	}
 
 	// Create the registry value which holds the certificate.
@@ -501,14 +520,19 @@ func checkCertExpiredCryptoAPI(certStoreKey registry.Key, subKeyName string) (bo
 	}
 	defer certKey.Close()
 
+	if expirableMagicName.Value() == "" {
+		// Magic expiration is disabled.  Therefore don't consider it expired.
+		return false, nil
+	}
+
 	// Check for magic value
-	isNamecoin, _, err := certKey.GetIntegerValue(cryptoAPIMagicName)
+	isNamecoin, _, err := certKey.GetIntegerValue(expirableMagicName.Value())
 	if err != nil {
 		// Magic value wasn't found.  Therefore don't consider it expired.
 		return false, nil
 	}
 
-	if isNamecoin != cryptoAPIMagicValue {
+	if isNamecoin != uint64(expirableMagicData.Value()) {
 		// Magic value was found but it wasn't the one we recognize.  Therefore don't consider it expired.
 		return false, nil
 	}
