@@ -281,6 +281,12 @@ func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
 		return
 	}
 
+	applyRegistryValues(certKey, blobBytes)
+}
+
+func applyRegistryValues(certKey registry.Key, blobBytes []byte) {
+	var err error
+
 	if setMagicName.Value() != "" {
 		err = applyMagic(certKey)
 		if err != nil {
