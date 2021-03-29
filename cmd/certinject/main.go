@@ -8,9 +8,10 @@ import (
 	"io/ioutil"
 
 	"github.com/hlandau/xlog"
-	"github.com/namecoin/certinject"
 	easyconfig "gopkg.in/hlandau/easyconfig.v1"
 	"gopkg.in/hlandau/easyconfig.v1/cflag"
+
+	"github.com/namecoin/certinject"
 )
 
 var log, logp = xlog.New("certinject")

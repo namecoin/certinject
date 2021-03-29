@@ -1,7 +1,9 @@
 package certinject
 
 import (
-	"crypto/sha1" // #nosec G505
+
+	// #nosec G505
+	"crypto/sha1"
 	"crypto/x509"
 	"encoding/hex"
 	"errors"
@@ -88,26 +90,27 @@ var (
 			"(see -certstore.expire flag)")
 )
 
-var ErrInjectCerts = errors.New("error injecting certs")
-var ErrEnumerateCerts = fmt.Errorf("error enumerating certs: %w", ErrInjectCerts)
-var ErrInvalidPhysicalStore = fmt.Errorf("invalid choice for physical store "+
-	"(consider current-user, system, enterprise, group-policy): %w",
-	ErrEnumerateCerts)
-var ErrGetInitialBlob = fmt.Errorf("error getting initial blob: %w", ErrInjectCerts)
-var ErrEditBlob = fmt.Errorf("error editing blob: %w", ErrInjectCerts)
-
 var (
-	// cryptoAPIStores consists of every implemented store.
-	// When adding a new one, the `%s` variable is optional.
-	// If `%s` exists in the Logical string, it is replaced with the value of
-	// the -logical-store flag.
-	cryptoAPIStores = map[string]Store{
-		"current-user": {registry.CURRENT_USER, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
-		"system":       {registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
-		"enterprise":   {registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\EnterpriseCertificates`, `%s\Certificates`},
-		"group-policy": {registry.LOCAL_MACHINE, `SOFTWARE\Policies\Microsoft\SystemCertificates`, `%s\Certificates`},
-	}
+	ErrInjectCerts          = errors.New("error injecting certs")
+	ErrEnumerateCerts       = fmt.Errorf("error enumerating certs: %w", ErrInjectCerts)
+	ErrInvalidPhysicalStore = fmt.Errorf("invalid choice for physical store "+
+		"(consider current-user, system, enterprise, group-policy): %w",
+		ErrEnumerateCerts)
+	ErrGetInitialBlob = fmt.Errorf("error getting initial blob: %w", ErrInjectCerts)
+	ErrEditBlob       = fmt.Errorf("error editing blob: %w", ErrInjectCerts)
+	ErrSetMagic       = fmt.Errorf("error setting magic tag: %w", ErrInjectCerts)
 )
+
+// cryptoAPIStores consists of every implemented store.
+// When adding a new one, the `%s` variable is optional.
+// If `%s` exists in the Logical string, it is replaced with the value of
+// the -logical-store flag.
+var cryptoAPIStores = map[string]Store{
+	"current-user": {registry.CURRENT_USER, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
+	"system":       {registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
+	"enterprise":   {registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\EnterpriseCertificates`, `%s\Certificates`},
+	"group-policy": {registry.LOCAL_MACHINE, `SOFTWARE\Policies\Microsoft\SystemCertificates`, `%s\Certificates`},
+}
 
 // Store is used to generate a registry key to open a certificate store in the Windows Registry.
 type Store struct {
@@ -331,7 +334,13 @@ func applyMagic(certKey registry.Key) error {
 	// probably just means it wasn't there already.
 	_ = certKey.DeleteValue(setMagicName.Value())
 
-	return certKey.SetDWordValue(setMagicName.Value(), uint32(setMagicData.Value()))
+	err := certKey.SetDWordValue(setMagicName.Value(), uint32(setMagicData.Value()))
+	if err != nil {
+		return fmt.Errorf("%s: couldn't apply magic '%s'='%d': %w", err,
+			setMagicName.Value(), uint32(setMagicData.Value()), ErrSetMagic)
+	}
+
+	return nil
 }
 
 func editBlob(blob certblob.Blob) error {
@@ -370,55 +379,26 @@ func editBlobEKU(blob certblob.Blob) error {
 func buildEKUList() []x509.ExtKeyUsage {
 	ekus := []x509.ExtKeyUsage{}
 
-	if ekuAny.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageAny)
-	}
-
-	if ekuServer.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageServerAuth)
-	}
-
-	if ekuClient.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageClientAuth)
-	}
-
-	if ekuCode.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageCodeSigning)
-	}
-
-	if ekuEmail.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageEmailProtection)
-	}
-
-	if ekuIPSECEndSystem.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageIPSECEndSystem)
-	}
-
-	if ekuIPSECTunnel.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageIPSECTunnel)
-	}
-
-	if ekuIPSECUser.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageIPSECUser)
-	}
-
-	if ekuTime.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageTimeStamping)
-	}
-
-	if ekuOCSP.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageOCSPSigning)
-	}
-
-	if ekuMSCodeCom.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageMicrosoftCommercialCodeSigning)
-	}
-
-	if ekuMSCodeKernel.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageMicrosoftKernelCodeSigning)
-	}
+	appendToEKUList(&ekus, ekuAny.Value(), x509.ExtKeyUsageAny)
+	appendToEKUList(&ekus, ekuServer.Value(), x509.ExtKeyUsageServerAuth)
+	appendToEKUList(&ekus, ekuClient.Value(), x509.ExtKeyUsageClientAuth)
+	appendToEKUList(&ekus, ekuCode.Value(), x509.ExtKeyUsageCodeSigning)
+	appendToEKUList(&ekus, ekuEmail.Value(), x509.ExtKeyUsageEmailProtection)
+	appendToEKUList(&ekus, ekuIPSECEndSystem.Value(), x509.ExtKeyUsageIPSECEndSystem)
+	appendToEKUList(&ekus, ekuIPSECTunnel.Value(), x509.ExtKeyUsageIPSECTunnel)
+	appendToEKUList(&ekus, ekuIPSECUser.Value(), x509.ExtKeyUsageIPSECUser)
+	appendToEKUList(&ekus, ekuTime.Value(), x509.ExtKeyUsageTimeStamping)
+	appendToEKUList(&ekus, ekuOCSP.Value(), x509.ExtKeyUsageOCSPSigning)
+	appendToEKUList(&ekus, ekuMSCodeCom.Value(), x509.ExtKeyUsageMicrosoftCommercialCodeSigning)
+	appendToEKUList(&ekus, ekuMSCodeKernel.Value(), x509.ExtKeyUsageMicrosoftKernelCodeSigning)
 
 	return ekus
+}
+
+func appendToEKUList(ekus *[]x509.ExtKeyUsage, enable bool, usage x509.ExtKeyUsage) {
+	if enable {
+		*ekus = append(*ekus, usage)
+	}
 }
 
 func editBlobNameConstraints(blob certblob.Blob) error {
@@ -443,57 +423,66 @@ func buildNameConstraintsTemplate() (*x509.Certificate, bool, error) {
 	nameConstraintsValid := false
 	nameConstraintsTemplate := x509.Certificate{}
 
-	if nameConstraintsPermittedDNS.Value() != "" {
-		nameConstraintsTemplate.PermittedDNSDomains = []string{nameConstraintsPermittedDNS.Value()}
-		nameConstraintsValid = true
+	setNameConstraintsStrings(
+		&nameConstraintsTemplate.PermittedDNSDomains,
+		nameConstraintsPermittedDNS.Value(), &nameConstraintsValid)
+
+	setNameConstraintsStrings(
+		&nameConstraintsTemplate.ExcludedDNSDomains,
+		nameConstraintsExcludedDNS.Value(), &nameConstraintsValid)
+
+	err := setNameConstraintsIPRanges(
+		&nameConstraintsTemplate.PermittedIPRanges,
+		nameConstraintsPermittedIP.Value(), &nameConstraintsValid)
+	if err != nil {
+		return nil, false, fmt.Errorf("permitted: %w", err)
 	}
 
-	if nameConstraintsExcludedDNS.Value() != "" {
-		nameConstraintsTemplate.ExcludedDNSDomains = []string{nameConstraintsExcludedDNS.Value()}
-		nameConstraintsValid = true
+	err = setNameConstraintsIPRanges(
+		&nameConstraintsTemplate.ExcludedIPRanges,
+		nameConstraintsExcludedIP.Value(), &nameConstraintsValid)
+	if err != nil {
+		return nil, false, fmt.Errorf("excluded: %w", err)
 	}
 
-	if nameConstraintsPermittedIP.Value() != "" {
-		_, nameConstraintsPermittedIPNet, err := net.ParseCIDR(nameConstraintsPermittedIP.Value())
-		if err != nil {
-			return nil, false, fmt.Errorf("%s: couldn't parse permitted IP CIDR: %w", err, ErrEditBlob)
-		}
+	setNameConstraintsStrings(
+		&nameConstraintsTemplate.PermittedEmailAddresses,
+		nameConstraintsPermittedEmail.Value(), &nameConstraintsValid)
 
-		nameConstraintsTemplate.PermittedIPRanges = []*net.IPNet{nameConstraintsPermittedIPNet}
-		nameConstraintsValid = true
-	}
+	setNameConstraintsStrings(
+		&nameConstraintsTemplate.ExcludedEmailAddresses,
+		nameConstraintsExcludedEmail.Value(), &nameConstraintsValid)
 
-	if nameConstraintsExcludedIP.Value() != "" {
-		_, nameConstraintsExcludedIPNet, err := net.ParseCIDR(nameConstraintsExcludedIP.Value())
-		if err != nil {
-			return nil, false, fmt.Errorf("%s: couldn't parse excluded IP CIDR: %w", err, ErrEditBlob)
-		}
+	setNameConstraintsStrings(
+		&nameConstraintsTemplate.PermittedURIDomains,
+		nameConstraintsPermittedURI.Value(), &nameConstraintsValid)
 
-		nameConstraintsTemplate.ExcludedIPRanges = []*net.IPNet{nameConstraintsExcludedIPNet}
-		nameConstraintsValid = true
-	}
-
-	if nameConstraintsPermittedEmail.Value() != "" {
-		nameConstraintsTemplate.PermittedEmailAddresses = []string{nameConstraintsPermittedEmail.Value()}
-		nameConstraintsValid = true
-	}
-
-	if nameConstraintsExcludedEmail.Value() != "" {
-		nameConstraintsTemplate.ExcludedEmailAddresses = []string{nameConstraintsExcludedEmail.Value()}
-		nameConstraintsValid = true
-	}
-
-	if nameConstraintsPermittedURI.Value() != "" {
-		nameConstraintsTemplate.PermittedURIDomains = []string{nameConstraintsPermittedURI.Value()}
-		nameConstraintsValid = true
-	}
-
-	if nameConstraintsExcludedURI.Value() != "" {
-		nameConstraintsTemplate.ExcludedURIDomains = []string{nameConstraintsExcludedURI.Value()}
-		nameConstraintsValid = true
-	}
+	setNameConstraintsStrings(
+		&nameConstraintsTemplate.ExcludedURIDomains,
+		nameConstraintsExcludedURI.Value(), &nameConstraintsValid)
 
 	return &nameConstraintsTemplate, nameConstraintsValid, nil
+}
+
+func setNameConstraintsStrings(ncs *[]string, val string, valid *bool) {
+	if val != "" {
+		*ncs = []string{val}
+		*valid = true
+	}
+}
+
+func setNameConstraintsIPRanges(ncs *[]*net.IPNet, val string, valid *bool) error {
+	if val != "" {
+		_, IPNet, err := net.ParseCIDR(val)
+		if err != nil {
+			return fmt.Errorf("%s: couldn't parse IP CIDR: %w", err, ErrEditBlob)
+		}
+
+		*ncs = []*net.IPNet{IPNet}
+		*valid = true
+	}
+
+	return nil
 }
 
 func cleanCertsCryptoAPI() {

@@ -7,14 +7,14 @@ task:
   container:
     image: golangci/golangci-lint:latest
   generate_script: go generate ./...
-  lint_script: golangci-lint run --no-config --enable-all --skip-files "file.go" --skip-files "nss.go" --disable gochecknoglobals,gomnd $GOLANGCI_ARGS -v --out-format json > lint-report.json
+  lint_script: golangci-lint run --enable-all --skip-files "file.go" --skip-files "nss.go" --disable exhaustivestruct,gochecknoglobals,gomnd $GOLANGCI_ARGS -v --out-format json > lint-report.json
   matrix:
     - name: Go Lint $GOOS New
       env:
         GOLANGCI_ARGS: "--new-from-rev=HEAD~"
     - name: Go Lint $GOOS Mandatory
       env:
-        GOLANGCI_ARGS: "--disable=errorlint,exhaustive,exhaustivestruct,gci,gofumpt,makezero,paralleltest"
+        GOLANGCI_ARGS: "--disable=errorlint,exhaustive,makezero,paralleltest,thelper"
     - name: Go Lint $GOOS
       env:
         GOLANGCI_ARGS: ""

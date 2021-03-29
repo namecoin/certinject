@@ -31,7 +31,7 @@ If (!$?) {
 }
 
 Write-Host "----- Cleanup $physical_store/$logical_store via certutil -----"
-$root_cn = "Let's Encrypt Authority X3"
+$root_cn = "R3"
 If ( "system" -eq $physical_store ) {
   & "certutil" "-delstore" "$logical_store" "$root_cn"
   If (!$?) {

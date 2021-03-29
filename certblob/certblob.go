@@ -29,11 +29,13 @@ const (
 
 const propReserved = 1
 
-var ErrProperty = errors.New("CryptoAPI blob property")
-var ErrPropertyBuild = fmt.Errorf("error building: %w", ErrProperty)
-var ErrPropertyMarshal = fmt.Errorf("error marshaling: %w", ErrProperty)
-var ErrPropertyParse = fmt.Errorf("error parsing: %w", ErrProperty)
-var ErrPropertyInvalidValue = fmt.Errorf("invalid Value: %w", ErrPropertyMarshal)
+var (
+	ErrProperty             = errors.New("CryptoAPI blob property")
+	ErrPropertyBuild        = fmt.Errorf("error building: %w", ErrProperty)
+	ErrPropertyMarshal      = fmt.Errorf("error marshaling: %w", ErrProperty)
+	ErrPropertyParse        = fmt.Errorf("error parsing: %w", ErrProperty)
+	ErrPropertyInvalidValue = fmt.Errorf("invalid Value: %w", ErrPropertyMarshal)
+)
 
 func (prop *Property) Marshal() ([]byte, error) {
 	if prop.Value == nil {
