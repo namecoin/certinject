@@ -14,7 +14,7 @@ task:
         GOLANGCI_ARGS: "--new-from-rev=HEAD~"
     - name: Go Lint $GOOS Mandatory
       env:
-        GOLANGCI_ARGS: "--disable=errorlint,exhaustive,exhaustivestruct,gci,gofumpt,makezero,paralleltest"
+        GOLANGCI_ARGS: "--disable=errorlint,exhaustive,exhaustivestruct,gci,gofumpt,makezero,paralleltest,thelper"
     - name: Go Lint $GOOS
       env:
         GOLANGCI_ARGS: ""
