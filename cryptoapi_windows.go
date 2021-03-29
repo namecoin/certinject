@@ -414,57 +414,66 @@ func buildNameConstraintsTemplate() (*x509.Certificate, bool, error) {
 	nameConstraintsValid := false
 	nameConstraintsTemplate := x509.Certificate{}
 
-	if nameConstraintsPermittedDNS.Value() != "" {
-		nameConstraintsTemplate.PermittedDNSDomains = []string{nameConstraintsPermittedDNS.Value()}
-		nameConstraintsValid = true
+	setNameConstraintsStrings(
+		&nameConstraintsTemplate.PermittedDNSDomains,
+		nameConstraintsPermittedDNS.Value(), &nameConstraintsValid)
+
+	setNameConstraintsStrings(
+		&nameConstraintsTemplate.ExcludedDNSDomains,
+		nameConstraintsExcludedDNS.Value(), &nameConstraintsValid)
+
+	err := setNameConstraintsIPRanges(
+		&nameConstraintsTemplate.PermittedIPRanges,
+		nameConstraintsPermittedIP.Value(), &nameConstraintsValid)
+	if err != nil {
+		return nil, false, fmt.Errorf("permitted: %w", err)
 	}
 
-	if nameConstraintsExcludedDNS.Value() != "" {
-		nameConstraintsTemplate.ExcludedDNSDomains = []string{nameConstraintsExcludedDNS.Value()}
-		nameConstraintsValid = true
+	err = setNameConstraintsIPRanges(
+		&nameConstraintsTemplate.ExcludedIPRanges,
+		nameConstraintsExcludedIP.Value(), &nameConstraintsValid)
+	if err != nil {
+		return nil, false, fmt.Errorf("excluded: %w", err)
 	}
 
-	if nameConstraintsPermittedIP.Value() != "" {
-		_, nameConstraintsPermittedIPNet, err := net.ParseCIDR(nameConstraintsPermittedIP.Value())
-		if err != nil {
-			return nil, false, fmt.Errorf("%s: couldn't parse permitted IP CIDR: %w", err, ErrEditBlob)
-		}
+	setNameConstraintsStrings(
+		&nameConstraintsTemplate.PermittedEmailAddresses,
+		nameConstraintsPermittedEmail.Value(), &nameConstraintsValid)
 
-		nameConstraintsTemplate.PermittedIPRanges = []*net.IPNet{nameConstraintsPermittedIPNet}
-		nameConstraintsValid = true
-	}
+	setNameConstraintsStrings(
+		&nameConstraintsTemplate.ExcludedEmailAddresses,
+		nameConstraintsExcludedEmail.Value(), &nameConstraintsValid)
 
-	if nameConstraintsExcludedIP.Value() != "" {
-		_, nameConstraintsExcludedIPNet, err := net.ParseCIDR(nameConstraintsExcludedIP.Value())
-		if err != nil {
-			return nil, false, fmt.Errorf("%s: couldn't parse excluded IP CIDR: %w", err, ErrEditBlob)
-		}
+	setNameConstraintsStrings(
+		&nameConstraintsTemplate.PermittedURIDomains,
+		nameConstraintsPermittedURI.Value(), &nameConstraintsValid)
 
-		nameConstraintsTemplate.ExcludedIPRanges = []*net.IPNet{nameConstraintsExcludedIPNet}
-		nameConstraintsValid = true
-	}
-
-	if nameConstraintsPermittedEmail.Value() != "" {
-		nameConstraintsTemplate.PermittedEmailAddresses = []string{nameConstraintsPermittedEmail.Value()}
-		nameConstraintsValid = true
-	}
-
-	if nameConstraintsExcludedEmail.Value() != "" {
-		nameConstraintsTemplate.ExcludedEmailAddresses = []string{nameConstraintsExcludedEmail.Value()}
-		nameConstraintsValid = true
-	}
-
-	if nameConstraintsPermittedURI.Value() != "" {
-		nameConstraintsTemplate.PermittedURIDomains = []string{nameConstraintsPermittedURI.Value()}
-		nameConstraintsValid = true
-	}
-
-	if nameConstraintsExcludedURI.Value() != "" {
-		nameConstraintsTemplate.ExcludedURIDomains = []string{nameConstraintsExcludedURI.Value()}
-		nameConstraintsValid = true
-	}
+	setNameConstraintsStrings(
+		&nameConstraintsTemplate.ExcludedURIDomains,
+		nameConstraintsExcludedURI.Value(), &nameConstraintsValid)
 
 	return &nameConstraintsTemplate, nameConstraintsValid, nil
+}
+
+func setNameConstraintsStrings(ncs *[]string, val string, valid *bool) {
+	if val != "" {
+		*ncs = []string{val}
+		*valid = true
+	}
+}
+
+func setNameConstraintsIPRanges(ncs *[]*net.IPNet, val string, valid *bool) error {
+	if val != "" {
+		_, IPNet, err := net.ParseCIDR(val)
+		if err != nil {
+			return fmt.Errorf("%s: couldn't parse IP CIDR: %w", err, ErrEditBlob)
+		}
+
+		*ncs = []*net.IPNet{IPNet}
+		*valid = true
+	}
+
+	return nil
 }
 
 func cleanCertsCryptoAPI() {
