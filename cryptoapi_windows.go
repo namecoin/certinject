@@ -1,7 +1,9 @@
 package certinject
 
 import (
-	"crypto/sha1" // #nosec G505
+
+	// #nosec G505
+	"crypto/sha1"
 	"crypto/x509"
 	"encoding/hex"
 	"errors"
