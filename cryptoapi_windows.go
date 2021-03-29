@@ -90,27 +90,27 @@ var (
 			"(see -certstore.expire flag)")
 )
 
-var ErrInjectCerts = errors.New("error injecting certs")
-var ErrEnumerateCerts = fmt.Errorf("error enumerating certs: %w", ErrInjectCerts)
-var ErrInvalidPhysicalStore = fmt.Errorf("invalid choice for physical store "+
-	"(consider current-user, system, enterprise, group-policy): %w",
-	ErrEnumerateCerts)
-var ErrGetInitialBlob = fmt.Errorf("error getting initial blob: %w", ErrInjectCerts)
-var ErrEditBlob = fmt.Errorf("error editing blob: %w", ErrInjectCerts)
-var ErrSetMagic = fmt.Errorf("error setting magic tag: %w", ErrInjectCerts)
-
 var (
-	// cryptoAPIStores consists of every implemented store.
-	// When adding a new one, the `%s` variable is optional.
-	// If `%s` exists in the Logical string, it is replaced with the value of
-	// the -logical-store flag.
-	cryptoAPIStores = map[string]Store{
-		"current-user": {registry.CURRENT_USER, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
-		"system":       {registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
-		"enterprise":   {registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\EnterpriseCertificates`, `%s\Certificates`},
-		"group-policy": {registry.LOCAL_MACHINE, `SOFTWARE\Policies\Microsoft\SystemCertificates`, `%s\Certificates`},
-	}
+	ErrInjectCerts          = errors.New("error injecting certs")
+	ErrEnumerateCerts       = fmt.Errorf("error enumerating certs: %w", ErrInjectCerts)
+	ErrInvalidPhysicalStore = fmt.Errorf("invalid choice for physical store "+
+		"(consider current-user, system, enterprise, group-policy): %w",
+		ErrEnumerateCerts)
+	ErrGetInitialBlob = fmt.Errorf("error getting initial blob: %w", ErrInjectCerts)
+	ErrEditBlob       = fmt.Errorf("error editing blob: %w", ErrInjectCerts)
+	ErrSetMagic       = fmt.Errorf("error setting magic tag: %w", ErrInjectCerts)
 )
+
+// cryptoAPIStores consists of every implemented store.
+// When adding a new one, the `%s` variable is optional.
+// If `%s` exists in the Logical string, it is replaced with the value of
+// the -logical-store flag.
+var cryptoAPIStores = map[string]Store{
+	"current-user": {registry.CURRENT_USER, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
+	"system":       {registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\SystemCertificates`, `%s\Certificates`},
+	"enterprise":   {registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\EnterpriseCertificates`, `%s\Certificates`},
+	"group-policy": {registry.LOCAL_MACHINE, `SOFTWARE\Policies\Microsoft\SystemCertificates`, `%s\Certificates`},
+}
 
 // Store is used to generate a registry key to open a certificate store in the Windows Registry.
 type Store struct {
