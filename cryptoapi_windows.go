@@ -95,6 +95,7 @@ var ErrInvalidPhysicalStore = fmt.Errorf("invalid choice for physical store "+
 	ErrEnumerateCerts)
 var ErrGetInitialBlob = fmt.Errorf("error getting initial blob: %w", ErrInjectCerts)
 var ErrEditBlob = fmt.Errorf("error editing blob: %w", ErrInjectCerts)
+var ErrSetMagic = fmt.Errorf("error setting magic tag: %w", ErrInjectCerts)
 
 var (
 	// cryptoAPIStores consists of every implemented store.
@@ -331,7 +332,13 @@ func applyMagic(certKey registry.Key) error {
 	// probably just means it wasn't there already.
 	_ = certKey.DeleteValue(setMagicName.Value())
 
-	return certKey.SetDWordValue(setMagicName.Value(), uint32(setMagicData.Value()))
+	err := certKey.SetDWordValue(setMagicName.Value(), uint32(setMagicData.Value()))
+	if err != nil {
+		return fmt.Errorf("%s: couldn't apply magic '%s'='%d': %w", err,
+			setMagicName.Value(), uint32(setMagicData.Value()), ErrSetMagic)
+	}
+
+	return nil
 }
 
 func editBlob(blob certblob.Blob) error {
