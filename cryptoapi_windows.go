@@ -370,55 +370,26 @@ func editBlobEKU(blob certblob.Blob) error {
 func buildEKUList() []x509.ExtKeyUsage {
 	ekus := []x509.ExtKeyUsage{}
 
-	if ekuAny.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageAny)
-	}
-
-	if ekuServer.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageServerAuth)
-	}
-
-	if ekuClient.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageClientAuth)
-	}
-
-	if ekuCode.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageCodeSigning)
-	}
-
-	if ekuEmail.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageEmailProtection)
-	}
-
-	if ekuIPSECEndSystem.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageIPSECEndSystem)
-	}
-
-	if ekuIPSECTunnel.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageIPSECTunnel)
-	}
-
-	if ekuIPSECUser.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageIPSECUser)
-	}
-
-	if ekuTime.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageTimeStamping)
-	}
-
-	if ekuOCSP.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageOCSPSigning)
-	}
-
-	if ekuMSCodeCom.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageMicrosoftCommercialCodeSigning)
-	}
-
-	if ekuMSCodeKernel.Value() {
-		ekus = append(ekus, x509.ExtKeyUsageMicrosoftKernelCodeSigning)
-	}
+	appendToEKUList(&ekus, ekuAny.Value(), x509.ExtKeyUsageAny)
+	appendToEKUList(&ekus, ekuServer.Value(), x509.ExtKeyUsageServerAuth)
+	appendToEKUList(&ekus, ekuClient.Value(), x509.ExtKeyUsageClientAuth)
+	appendToEKUList(&ekus, ekuCode.Value(), x509.ExtKeyUsageCodeSigning)
+	appendToEKUList(&ekus, ekuEmail.Value(), x509.ExtKeyUsageEmailProtection)
+	appendToEKUList(&ekus, ekuIPSECEndSystem.Value(), x509.ExtKeyUsageIPSECEndSystem)
+	appendToEKUList(&ekus, ekuIPSECTunnel.Value(), x509.ExtKeyUsageIPSECTunnel)
+	appendToEKUList(&ekus, ekuIPSECUser.Value(), x509.ExtKeyUsageIPSECUser)
+	appendToEKUList(&ekus, ekuTime.Value(), x509.ExtKeyUsageTimeStamping)
+	appendToEKUList(&ekus, ekuOCSP.Value(), x509.ExtKeyUsageOCSPSigning)
+	appendToEKUList(&ekus, ekuMSCodeCom.Value(), x509.ExtKeyUsageMicrosoftCommercialCodeSigning)
+	appendToEKUList(&ekus, ekuMSCodeKernel.Value(), x509.ExtKeyUsageMicrosoftKernelCodeSigning)
 
 	return ekus
+}
+
+func appendToEKUList(ekus *[]x509.ExtKeyUsage, enable bool, usage x509.ExtKeyUsage) {
+	if enable {
+		*ekus = append(*ekus, usage)
+	}
 }
 
 func editBlobNameConstraints(blob certblob.Blob) error {
