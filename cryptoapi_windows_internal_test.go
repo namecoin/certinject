@@ -18,64 +18,64 @@ type registryKeyNamesTestCase struct {
 }
 
 func registryKeyNamesTestData() []registryKeyNamesTestCase {
-	cu := registry.CURRENT_USER
-	lm := registry.LOCAL_MACHINE
+	hkcu := registry.CURRENT_USER
+	hklm := registry.LOCAL_MACHINE
 
 	return []registryKeyNamesTestCase{
-		{"system+root", "system", "Root", `SOFTWARE\Microsoft\SystemCertificates\Root\Certificates`, lm},
-		{"system+CA", "system", "CA", `SOFTWARE\Microsoft\SystemCertificates\CA\Certificates`, lm},
-		{"system+My", "system", "My", `SOFTWARE\Microsoft\SystemCertificates\My\Certificates`, lm},
-		{"system+Trust", "system", "Trust", `SOFTWARE\Microsoft\SystemCertificates\Trust\Certificates`, lm},
-		{"system+Disallowed", "system", "Disallowed", `SOFTWARE\Microsoft\SystemCertificates\Disallowed\Certificates`, lm},
-		{"user+root", "current-user", "Root", `SOFTWARE\Microsoft\SystemCertificates\Root\Certificates`, cu},
-		{"user+CA", "current-user", "CA", `SOFTWARE\Microsoft\SystemCertificates\CA\Certificates`, cu},
-		{"user+My", "current-user", "My", `SOFTWARE\Microsoft\SystemCertificates\My\Certificates`, cu},
-		{"user+Trust", "current-user", "Trust", `SOFTWARE\Microsoft\SystemCertificates\Trust\Certificates`, cu},
-		{"enterprise+root", "enterprise", "Root", `SOFTWARE\Microsoft\EnterpriseCertificates\Root\Certificates`, lm},
-		{"enterprise+CA", "enterprise", "CA", `SOFTWARE\Microsoft\EnterpriseCertificates\CA\Certificates`, lm},
-		{"enterprise+My", "enterprise", "My", `SOFTWARE\Microsoft\EnterpriseCertificates\My\Certificates`, lm},
-		{"enterprise+Trust", "enterprise", "Trust", `SOFTWARE\Microsoft\EnterpriseCertificates\Trust\Certificates`, lm},
-		{"group+root", "group-policy", "Root", `SOFTWARE\Policies\Microsoft\SystemCertificates\Root\Certificates`, lm},
-		{"group+CA", "group-policy", "CA", `SOFTWARE\Policies\Microsoft\SystemCertificates\CA\Certificates`, lm},
-		{"group+My", "group-policy", "My", `SOFTWARE\Policies\Microsoft\SystemCertificates\My\Certificates`, lm},
-		{"group+Trust", "group-policy", "Trust", `SOFTWARE\Policies\Microsoft\SystemCertificates\Trust\Certificates`, lm},
+		{"system+root", "system", "Root", `SOFTWARE\Microsoft\SystemCertificates\Root\Certificates`, hklm},
+		{"system+CA", "system", "CA", `SOFTWARE\Microsoft\SystemCertificates\CA\Certificates`, hklm},
+		{"system+My", "system", "My", `SOFTWARE\Microsoft\SystemCertificates\My\Certificates`, hklm},
+		{"system+Trust", "system", "Trust", `SOFTWARE\Microsoft\SystemCertificates\Trust\Certificates`, hklm},
+		{"system+Disallowed", "system", "Disallowed", `SOFTWARE\Microsoft\SystemCertificates\Disallowed\Certificates`, hklm},
+		{"user+root", "current-user", "Root", `SOFTWARE\Microsoft\SystemCertificates\Root\Certificates`, hkcu},
+		{"user+CA", "current-user", "CA", `SOFTWARE\Microsoft\SystemCertificates\CA\Certificates`, hkcu},
+		{"user+My", "current-user", "My", `SOFTWARE\Microsoft\SystemCertificates\My\Certificates`, hkcu},
+		{"user+Trust", "current-user", "Trust", `SOFTWARE\Microsoft\SystemCertificates\Trust\Certificates`, hkcu},
+		{"enterprise+root", "enterprise", "Root", `SOFTWARE\Microsoft\EnterpriseCertificates\Root\Certificates`, hklm},
+		{"enterprise+CA", "enterprise", "CA", `SOFTWARE\Microsoft\EnterpriseCertificates\CA\Certificates`, hklm},
+		{"enterprise+My", "enterprise", "My", `SOFTWARE\Microsoft\EnterpriseCertificates\My\Certificates`, hklm},
+		{"enterprise+Trust", "enterprise", "Trust", `SOFTWARE\Microsoft\EnterpriseCertificates\Trust\Certificates`, hklm},
+		{"group+root", "group-policy", "Root", `SOFTWARE\Policies\Microsoft\SystemCertificates\Root\Certificates`, hklm},
+		{"group+CA", "group-policy", "CA", `SOFTWARE\Policies\Microsoft\SystemCertificates\CA\Certificates`, hklm},
+		{"group+My", "group-policy", "My", `SOFTWARE\Policies\Microsoft\SystemCertificates\My\Certificates`, hklm},
+		{"group+Trust", "group-policy", "Trust", `SOFTWARE\Policies\Microsoft\SystemCertificates\Trust\Certificates`, hklm},
 	}
 }
 
 func TestRegistryKeyNames(t *testing.T) {
-	cu := registry.CURRENT_USER
-	lm := registry.LOCAL_MACHINE
+	hkcu := registry.CURRENT_USER
+	hklm := registry.LOCAL_MACHINE
 	tests := registryKeyNamesTestData()
 
-	for _, tc := range tests {
-		store, ok := cryptoAPIStores[tc.Physical]
+	for _, testCase := range tests {
+		store, ok := cryptoAPIStores[testCase.Physical]
 		if !ok {
-			t.Errorf("test %q is invalid (store not defined)", tc.Physical)
+			t.Errorf("test %q is invalid (store not defined)", testCase.Physical)
 
 			continue
 		}
 
-		if err := cryptoAPIFlagLogicalStoreName.CfSetValue(tc.Logical); err != nil {
-			t.Errorf("test %q: %v", tc.Name, err)
+		if err := cryptoAPIFlagLogicalStoreName.CfSetValue(testCase.Logical); err != nil {
+			t.Errorf("test %q: %v", testCase.Name, err)
 
 			continue
 		}
 
 		key := store.Key()
-		if key != tc.Key {
-			t.Errorf("test %q: expected key to be %q, got %q", tc.Name, tc.Key, key)
+		if key != testCase.Key {
+			t.Errorf("test %q: expected key to be %q, got %q", testCase.Name, testCase.Key, key)
 
 			continue
 		}
 
-		base2str := func(t *testing.T, r registry.Key) string {
-			switch r {
-			case cu:
+		base2str := func(t *testing.T, rkey registry.Key) string {
+			switch rkey {
+			case hkcu:
 				return "HKCU"
-			case lm:
+			case hklm:
 				return "HKLM"
 			default:
-				t.Errorf("expected valid registry key, got: %v", r)
+				t.Errorf("expected valid registry key, got: %v", rkey)
 				t.FailNow()
 
 				return ""
@@ -83,12 +83,12 @@ func TestRegistryKeyNames(t *testing.T) {
 		}
 
 		base := store.Base
-		if base != tc.Base {
-			t.Errorf("test %q: expected base to be %v, got %v", tc.Name, base2str(t, tc.Base), base2str(t, base))
+		if base != testCase.Base {
+			t.Errorf("test %q: expected base to be %v, got %v", testCase.Name, base2str(t, testCase.Base), base2str(t, base))
 
 			continue
 		}
 
-		t.Logf("[PASS] test %q: %s\\%s", tc.Name, base2str(t, base), key)
+		t.Logf("[PASS] test %q: %s\\%s", testCase.Name, base2str(t, base), key)
 	}
 }
