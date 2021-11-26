@@ -13,6 +13,7 @@ If (!$?) {
   exit 222
 }
 
+# Extract via: torsocks openssl s_client -showcerts -servername www.namecoin.org -connect www.namecoin.org:443 < /dev/null | csplit -f tmp-namecoin.org- - '/-----BEGIN CERTIFICATE-----/' '{*}' && grep -v : tmp-namecoin.org-02 > testdata/lets-encrypt-intermediate.ca.pem.cert && rm tmp-namecoin.org-*
 Write-Host "----- Publicly trusted TLS website; injecting intermediate CA PEM certificate into $physical_store/$logical_store -----"
 # inject certificate into trust store
 Write-Host "injecting certificate into trust store"
