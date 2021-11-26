@@ -52,17 +52,17 @@ func main() {
 			log.Fatale(err, "error reading certificate")
 		}
 
-		p, _ := pem.Decode(b)
-		if p != nil {
+		certpem, _ := pem.Decode(b)
+		if certpem != nil {
 			log.Debugf("user provided PEM-encoded input file; checking type...")
 
-			if p.Type != "CERTIFICATE" {
-				log.Fatalf("PEM type was %s, expecting CERTIFICATE", p.Type)
+			if certpem.Type != "CERTIFICATE" {
+				log.Fatalf("PEM type was %s, expecting CERTIFICATE", certpem.Type)
 			}
 
 			log.Debugf("PEM file is a certificate; extracting DER bytes...")
 
-			b = p.Bytes
+			b = certpem.Bytes
 		}
 	}
 
