@@ -109,19 +109,19 @@ func (b Blob) sortedIDs() []uint32 {
 		propIDs = append(propIDs, id)
 	}
 
-	sort.Slice(propIDs, func(i, j int) bool {
+	sort.Slice(propIDs, func(idx1, idx2 int) bool {
 		// Content properties MUST be at the end, as per the following spec
 		// (archived on Archive.org and Archive.today):
 		// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-gpef/6a9e35fa-2ac7-4c10-81e1-eabe8d2472f1
 		// Any properties that are after the content property will be silently
 		// ignored by CryptoAPI!
-		iContent := isContentPropID(propIDs[i])
-		jContent := isContentPropID(propIDs[j])
-		if iContent != jContent {
-			return jContent
+		isContent1 := isContentPropID(propIDs[idx1])
+		isContent2 := isContentPropID(propIDs[idx2])
+		if isContent1 != isContent2 {
+			return isContent2
 		}
 
-		return propIDs[i] < propIDs[j]
+		return propIDs[idx1] < propIDs[idx2]
 	})
 
 	return propIDs
@@ -139,14 +139,14 @@ func (b Blob) Marshal() ([]byte, error) {
 	)
 
 	// Iterate through the sorted ID's
-	for _, id := range propIDs {
+	for _, pid := range propIDs {
 		// Construct a Property
-		singleProperty = Property{ID: id, Value: b[id]}
+		singleProperty = Property{ID: pid, Value: b[pid]}
 
 		// Marshal the Property
 		resultSingleProperty, err = singleProperty.Marshal()
 		if err != nil {
-			return nil, fmt.Errorf("ID %d: %w", id, err)
+			return nil, fmt.Errorf("ID %d: %w", pid, err)
 		}
 
 		// Append the Property's bytes to the result
