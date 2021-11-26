@@ -19,6 +19,7 @@ If (!$?) {
   exit 222
 }
 
+# Extract via: torsocks openssl s_client -showcerts -servername self-signed.badssl.com -connect self-signed.badssl.com:443 < /dev/null | openssl x509 -outform DER > testdata/badssl.com.der.cert
 Write-Host "----- Self-signed end-entity TLS website; injecting DER certificate into $physical_store/$logical_store -----"
 Write-Host "injecting certificate into trust store"
 & "certinject.exe" "-capi.physical-store" "$physical_store" "-capi.logical-store" "$logical_store" "-certinject.cert" "testdata/badssl.com.der.cert" "-certstore.cryptoapi"
