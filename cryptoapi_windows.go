@@ -17,6 +17,7 @@ import (
 	"gopkg.in/hlandau/easyconfig.v1/cflag"
 
 	"github.com/namecoin/certinject/certblob"
+	"github.com/namecoin/certinject/regwait"
 )
 
 var (
@@ -32,6 +33,8 @@ var (
 			"(uppercase hex) instead of loading a certificate from a file")
 	allCerts = cflag.Bool(cryptoAPIFlagGroup, "all-certs", false,
 		"Apply operations to all certificates in the specified store")
+	watch = cflag.Bool(cryptoAPIFlagGroup, "watch", false,
+		"Continuously re-apply operations whenever the specified store updates")
 	ekuFlagGroup = cflag.NewGroup(cryptoAPIFlagGroup, "eku")
 	ekuAny       = cflag.Bool(ekuFlagGroup, "any", false, "Any purpose")
 	ekuServer    = cflag.Bool(ekuFlagGroup, "server", false,
@@ -199,7 +202,63 @@ func injectCertCryptoAPI(derBytes []byte) {
 	registryBase := store.Base
 	storeKey := store.Key()
 
+	var certStoreKey registry.Key
+
+	if watch.Value() {
+		// Open up the cert store.
+		certStoreKey, err = registry.OpenKey(registryBase, storeKey, registry.NOTIFY)
+		if err != nil {
+			log.Errorf("%s: couldn't open cert store: %w", err, ErrEnumerateCerts)
+
+			return
+		}
+		defer certStoreKey.Close()
+	}
+
+	ready := false
+
+	for {
+		injectCertOnceCryptoAPI(derBytes, registryBase, storeKey)
+
+		if !watch.Value() {
+			break
+		}
+
+		// As per Windows API docs, the first call to RegNotifyChangeKeyValue
+		// behaves differently from subsequent calls.  The first call waits for
+		// an event that occurred after the call was made; all subsequent calls
+		// wait for an event that occurred after the previous reported event.
+		// The first call does NOT report events that occurred between the
+		// opening of the key and the first call, which is what would be sane.
+		// Thus, we have a race condition, where if an event happens between
+		// opening the key and the first call, that event will be dropped.
+		// Thus, as a stupid workaround, we set up a goroutine to reapply any
+		// requested cert store operations ~3 seconds after the first call, so
+		// that if the race condition was hit, it will be automatically fixed
+		// after ~3 seconds.  I know this is stupid.  Blame Microsoft, not me.
+		if !ready {
+			go func() {
+				time.Sleep(3 * time.Second)
+				injectCertOnceCryptoAPI(derBytes, registryBase, storeKey)
+
+				log.Info("Registry is ready")
+				ready = true
+			} ()
+		}
+
+		log.Info("Waiting for registry change...")
+
+		err = regwait.WaitChange(certStoreKey, true, regwait.Subkey | regwait.Value)
+		if err != nil {
+			log.Errorf("%s: couldn't watch cert store", err)
+		}
+	}
+}
+
+func injectCertOnceCryptoAPI(derBytes []byte, registryBase registry.Key, storeKey string) {
 	fingerprintHexUpperList := []string{}
+
+	var err error
 
 	if allCerts.Value() {
 		derBytes = nil
@@ -331,8 +390,11 @@ func applyMagic(certKey registry.Key) error {
 	// To satisfy the first example use case, we have to delete it before we
 	// create it, so that we make sure that the "last modified" metadata gets
 	// updated.  If an error occurs during deletion, we ignore it, since it
-	// probably just means it wasn't there already.
-	_ = certKey.DeleteValue(setMagicName.Value())
+	// probably just means it wasn't there already.  In watch mode, we don't do
+	// this, since it would cause an infinite loop.
+	if !watch.Value() {
+		_ = certKey.DeleteValue(setMagicName.Value())
+	}
 
 	err := certKey.SetDWordValue(setMagicName.Value(), uint32(setMagicData.Value()))
 	if err != nil {
