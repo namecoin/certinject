@@ -31,20 +31,20 @@ func main() {
 	dexlogconfig.Init()
 
 	var (
-		b   []byte
-		err error
+		certbytes []byte
+		err       error
 	)
 
 	cert := certflag.Value()
 	if cert != "" {
 		log.Debugf("reading certificate: %q", cert)
 
-		b, err = ioutil.ReadFile(cert)
+		certbytes, err = ioutil.ReadFile(cert)
 		if err != nil {
 			log.Fatale(err, "error reading certificate")
 		}
 
-		certpem, _ := pem.Decode(b)
+		certpem, _ := pem.Decode(certbytes)
 		if certpem != nil {
 			log.Debugf("user provided PEM-encoded input file; checking type...")
 
@@ -54,12 +54,12 @@ func main() {
 
 			log.Debugf("PEM file is a certificate; extracting DER bytes...")
 
-			b = certpem.Bytes
+			certbytes = certpem.Bytes
 		}
 	}
 
 	log.Debugf("injecting certificate...")
 
-	certinject.InjectCert(b)
+	certinject.InjectCert(certbytes)
 	log.Debugf("injected certificate: %q", cert)
 }
