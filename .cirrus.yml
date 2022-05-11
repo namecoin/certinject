@@ -60,7 +60,7 @@ task:
     cpu: 8
     memory: 8G
   install_script:
-    - go get github.com/mitchellh/gox
+    - go install github.com/mitchellh/gox@latest
   fetch_script:
     - go get -tags "$GOX_TAGS" -d -u -v -t ./...
     - GOOS=windows GOARCH=amd64 go get -tags "$GOX_TAGS" -d -u -v -t ./...
