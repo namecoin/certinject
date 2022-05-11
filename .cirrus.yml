@@ -6,7 +6,11 @@ task:
   alias: Go Lint
   container:
     image: golangci/golangci-lint:latest
-  generate_script: go generate ./...
+  fetch_script:
+    - go mod init github.com/"$CIRRUS_REPO_FULL_NAME"
+    - go mod tidy
+    - go generate ./...
+    - go mod tidy
   lint_script: golangci-lint run --enable-all --skip-files "file.go" --skip-files "nss.go" --disable exhaustivestruct,gochecknoglobals,gomnd $GOLANGCI_ARGS -v --out-format json > lint-report.json
   matrix:
     - name: Go Lint $GOOS New
@@ -45,8 +49,10 @@ task:
   container:
     image: golang:$GO_VERSION
   fetch_script:
-    - go get -tags "$GOX_TAGS" -d -u -v -t ./...
-  generate_script: go generate ./...
+    - go mod init github.com/"$CIRRUS_REPO_FULL_NAME"
+    - go mod tidy
+    - go generate ./...
+    - go mod tidy
   test_script: go test -tags "$GOX_TAGS" -v ./...
   env:
     GOX_TAGS: ""
@@ -62,9 +68,10 @@ task:
   install_script:
     - go install github.com/mitchellh/gox@latest
   fetch_script:
-    - go get -tags "$GOX_TAGS" -d -u -v -t ./...
-    - GOOS=windows GOARCH=amd64 go get -tags "$GOX_TAGS" -d -u -v -t ./...
-  generate_script: go generate ./...
+    - go mod init github.com/"$CIRRUS_REPO_FULL_NAME"
+    - go mod tidy
+    - go generate ./...
+    - go mod tidy
   build_script:
     - rm -rf idist
     # Nothing in this repo needs cgo.
