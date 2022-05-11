@@ -202,19 +202,23 @@ func injectCertCryptoAPI(derBytes []byte) {
 	registryBase := store.Base
 	storeKey := store.Key()
 
-	var certStoreKey registry.Key
+	var storeNotifyKey registry.Key
 
 	if watch.Value() {
 		// Open up the cert store.
-		certStoreKey, err = registry.OpenKey(registryBase, storeKey, registry.NOTIFY)
+		storeNotifyKey, err = registry.OpenKey(registryBase, storeKey, registry.NOTIFY)
 		if err != nil {
 			log.Errorf("%s: couldn't open cert store: %w", err, ErrEnumerateCerts)
 
 			return
 		}
-		defer certStoreKey.Close()
+		defer storeNotifyKey.Close()
 	}
 
+	injectCertLoopCryptoAPI(derBytes, registryBase, storeKey, storeNotifyKey)
+}
+
+func injectCertLoopCryptoAPI(derBytes []byte, registryBase registry.Key, storeKey string, storeNotifyKey registry.Key) {
 	ready := false
 
 	for {
@@ -249,7 +253,7 @@ func injectCertCryptoAPI(derBytes []byte) {
 
 		log.Info("Waiting for registry change...")
 
-		err = regwait.WaitChange(certStoreKey, true, regwait.Subkey|regwait.Value)
+		err := regwait.WaitChange(storeNotifyKey, true, regwait.Subkey|regwait.Value)
 		if err != nil {
 			log.Errorf("%s: couldn't watch cert store", err)
 		}
