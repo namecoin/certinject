@@ -423,18 +423,20 @@ func editBlob(blob certblob.Blob) error {
 func editBlobEKU(blob certblob.Blob) error {
 	ekus := buildEKUList()
 
-	if len(ekus) > 0 {
-		ekuTemplate := x509.Certificate{
-			ExtKeyUsage: ekus,
-		}
-
-		ekuProperty, err := certblob.BuildExtKeyUsage(&ekuTemplate)
-		if err != nil {
-			return fmt.Errorf("%s: couldn't marshal extended key usage property: %w", err, ErrEditBlob)
-		}
-
-		blob.SetProperty(ekuProperty)
+	if len(ekus) == 0 {
+		return nil
 	}
+
+	ekuTemplate := x509.Certificate{
+		ExtKeyUsage: ekus,
+	}
+
+	ekuProperty, err := certblob.BuildExtKeyUsage(&ekuTemplate)
+	if err != nil {
+		return fmt.Errorf("%s: couldn't marshal extended key usage property: %w", err, ErrEditBlob)
+	}
+
+	blob.SetProperty(ekuProperty)
 
 	return nil
 }
