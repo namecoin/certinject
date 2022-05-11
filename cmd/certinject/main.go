@@ -15,7 +15,7 @@ import (
 	"github.com/namecoin/certinject"
 )
 
-var log, logp = xlog.New("certinject")
+var log, _ = xlog.New("certinject")
 
 func main() {
 	var (
