@@ -1,7 +1,6 @@
 package certinject
 
 import (
-
 	// #nosec G505
 	"crypto/sha1"
 	"crypto/x509"
@@ -202,19 +201,23 @@ func injectCertCryptoAPI(derBytes []byte) {
 	registryBase := store.Base
 	storeKey := store.Key()
 
-	var certStoreKey registry.Key
+	var storeNotifyKey registry.Key
 
 	if watch.Value() {
 		// Open up the cert store.
-		certStoreKey, err = registry.OpenKey(registryBase, storeKey, registry.NOTIFY)
+		storeNotifyKey, err = registry.OpenKey(registryBase, storeKey, registry.NOTIFY)
 		if err != nil {
 			log.Errorf("%s: couldn't open cert store: %w", err, ErrEnumerateCerts)
 
 			return
 		}
-		defer certStoreKey.Close()
+		defer storeNotifyKey.Close()
 	}
 
+	injectCertLoopCryptoAPI(derBytes, registryBase, storeKey, storeNotifyKey)
+}
+
+func injectCertLoopCryptoAPI(derBytes []byte, registryBase registry.Key, storeKey string, storeNotifyKey registry.Key) {
 	ready := false
 
 	for {
@@ -242,13 +245,14 @@ func injectCertCryptoAPI(derBytes []byte) {
 				injectCertOnceCryptoAPI(derBytes, registryBase, storeKey)
 
 				log.Info("Registry is ready")
+
 				ready = true
-			} ()
+			}()
 		}
 
 		log.Info("Waiting for registry change...")
 
-		err = regwait.WaitChange(certStoreKey, true, regwait.Subkey | regwait.Value)
+		err := regwait.WaitChange(storeNotifyKey, true, regwait.Subkey|regwait.Value)
 		if err != nil {
 			log.Errorf("%s: couldn't watch cert store", err)
 		}
@@ -300,7 +304,8 @@ func injectCertOnceCryptoAPI(derBytes []byte, registryBase registry.Key, storeKe
 }
 
 func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
-	registryBase registry.Key, storeKey string) {
+	registryBase registry.Key, storeKey string,
+) {
 	// Construct the input Blob
 	blob, err := readInputBlob(derBytes, registryBase, storeKey+`\`+fingerprintHexUpper)
 	if err != nil {
@@ -422,18 +427,20 @@ func editBlob(blob certblob.Blob) error {
 func editBlobEKU(blob certblob.Blob) error {
 	ekus := buildEKUList()
 
-	if len(ekus) > 0 {
-		ekuTemplate := x509.Certificate{
-			ExtKeyUsage: ekus,
-		}
-
-		ekuProperty, err := certblob.BuildExtKeyUsage(&ekuTemplate)
-		if err != nil {
-			return fmt.Errorf("%s: couldn't marshal extended key usage property: %w", err, ErrEditBlob)
-		}
-
-		blob.SetProperty(ekuProperty)
+	if len(ekus) == 0 {
+		return nil
 	}
+
+	ekuTemplate := x509.Certificate{
+		ExtKeyUsage: ekus,
+	}
+
+	ekuProperty, err := certblob.BuildExtKeyUsage(&ekuTemplate)
+	if err != nil {
+		return fmt.Errorf("%s: couldn't marshal extended key usage property: %w", err, ErrEditBlob)
+	}
+
+	blob.SetProperty(ekuProperty)
 
 	return nil
 }

@@ -13,22 +13,39 @@ Prerequisites:
 
 1. Ensure you have the Go tools installed.
 
-Option A: Using Go build commands (works on any platform with Bash):
+Option A: Using Go build commands without Go modules (works on any platform with Bash; only Go 1.15-1.16.x; will not work on Go 1.17+):
 
 1. Ensure you have the GOPATH environment variable set. (For those not
    familar with Go, setting it to the path to an empty directory will suffice.
    The directory will be filled with build files.)
 
-2. Run `go get -d -t -u github.com/namecoin/certinject/...`. The certinject source code will be
+2. Run `export GO111MODULE=off` to disable Go modules.
+
+3. Run `go get -d -t -u github.com/namecoin/certinject/...`. The certinject source code will be
    retrieved automatically.
 
-3. Run `go generate github.com/namecoin/certinject/...`. Some intermediate Go code will be
+4. Run `go generate github.com/namecoin/certinject/...`. Some intermediate Go code will be
    generated.
 
-4. Run `go get -t github.com/namecoin/certinject/...`. The certinject source code will be built.
+5. Run `go get -t github.com/namecoin/certinject/...`. The certinject source code will be built.
    The binary of the command-line tool `certinject` will be placed in `$GOPATH/bin`
 
-Option B: Using Makefile (non-Windows platforms):
+Option B: Using Go build commands with Go modules (works on any platform with Bash; Go 1.15+:
+
+1. Clone certinject via Git.
+
+2. Run the following in the certinject directory to set up Go modules:
+   
+   ~~~
+   go mod init github.com/namecoin/certinject
+   go mod tidy
+   go generate ./...
+   go mod tidy
+   ~~~
+
+3. Run `go install ./...`.  certinject will be built. The binaries will be at `$GOPATH/bin/certinject`.
+
+Option C: Using Makefile (non-Windows platforms):
 
 1. Run `make`. The source repository will be retrieved via `go get`
    automatically.

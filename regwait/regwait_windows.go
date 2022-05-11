@@ -29,7 +29,8 @@ const (
 )
 
 func regNotifyChangeKeyValue(key syscall.Handle, watchSubtree bool,
-	notifyFilter uint32, event syscall.Handle, async bool) (regerrno error) {
+	notifyFilter uint32, event syscall.Handle, async bool,
+) error {
 	var _p0 uint32
 	if watchSubtree {
 		_p0 = 1
@@ -49,10 +50,10 @@ func regNotifyChangeKeyValue(key syscall.Handle, watchSubtree bool,
 		uintptr(key), uintptr(_p0), uintptr(notifyFilter), uintptr(event),
 		uintptr(_p1), 0)
 	if r0 != 0 {
-		regerrno = syscall.Errno(r0)
+		return syscall.Errno(r0)
 	}
 
-	return
+	return nil
 }
 
 // WaitChange waits for k to change using RegNotifyChangeKeyValue.
