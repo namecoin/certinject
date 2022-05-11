@@ -243,12 +243,12 @@ func injectCertCryptoAPI(derBytes []byte) {
 
 				log.Info("Registry is ready")
 				ready = true
-			} ()
+			}()
 		}
 
 		log.Info("Waiting for registry change...")
 
-		err = regwait.WaitChange(certStoreKey, true, regwait.Subkey | regwait.Value)
+		err = regwait.WaitChange(certStoreKey, true, regwait.Subkey|regwait.Value)
 		if err != nil {
 			log.Errorf("%s: couldn't watch cert store", err)
 		}
