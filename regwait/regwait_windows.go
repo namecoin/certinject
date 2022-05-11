@@ -29,7 +29,8 @@ const (
 )
 
 func regNotifyChangeKeyValue(key syscall.Handle, watchSubtree bool,
-	notifyFilter uint32, event syscall.Handle, async bool) (regerrno error) {
+	notifyFilter uint32, event syscall.Handle, async bool,
+) (regerrno error) {
 	var _p0 uint32
 	if watchSubtree {
 		_p0 = 1

@@ -300,7 +300,8 @@ func injectCertOnceCryptoAPI(derBytes []byte, registryBase registry.Key, storeKe
 }
 
 func injectSingleCertCryptoAPI(derBytes []byte, fingerprintHexUpper string,
-	registryBase registry.Key, storeKey string) {
+	registryBase registry.Key, storeKey string,
+) {
 	// Construct the input Blob
 	blob, err := readInputBlob(derBytes, registryBase, storeKey+`\`+fingerprintHexUpper)
 	if err != nil {
