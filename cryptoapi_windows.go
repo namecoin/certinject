@@ -242,6 +242,7 @@ func injectCertCryptoAPI(derBytes []byte) {
 				injectCertOnceCryptoAPI(derBytes, registryBase, storeKey)
 
 				log.Info("Registry is ready")
+
 				ready = true
 			}()
 		}
