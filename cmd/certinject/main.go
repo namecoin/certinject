@@ -5,7 +5,7 @@ package main
 
 import (
 	"encoding/pem"
-	"io/ioutil"
+	"os"
 
 	"github.com/hlandau/dexlogconfig"
 	"github.com/hlandau/xlog"
@@ -39,7 +39,7 @@ func main() {
 	if cert != "" {
 		log.Debugf("reading certificate: %q", cert)
 
-		certbytes, err = ioutil.ReadFile(cert)
+		certbytes, err = os.ReadFile(cert)
 		if err != nil {
 			log.Fatale(err, "error reading certificate")
 		}
