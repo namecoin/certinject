@@ -604,7 +604,8 @@ func cleanCertsCryptoAPI() {
 // This function is specific to the dehydrated certificate method of positive
 // overrides, which is deprecated; thus we're not going to maintain this
 // function.
-//nolint
+//
+//nolint:all
 func checkCertExpiredCryptoAPI(certStoreKey registry.Key, subKeyName string) (bool, error) {
 	// Open the cert
 	certKey, err := registry.OpenKey(certStoreKey, subKeyName, registry.ALL_ACCESS)
