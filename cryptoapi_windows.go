@@ -385,12 +385,12 @@ func applyRegistryValues(certKey registry.Key, blobBytes []byte) {
 // ignored by CryptoAPI, but can be recognized by software that knows to look
 // for it.  Example uses:
 //
-// * Indicating that a certificate is a Namecoin dehydrated certificate, and
-//   should be deleted once it reaches a certain age to avoid leaving browsing
-//   history in the registry.
-// * Indicating that a certificate is a Namecoin root certificate, and should
-//   be exempt from a Namecoin name constraint exclusion that is applied to all
-//   other root CA's.
+//   - Indicating that a certificate is a Namecoin dehydrated certificate, and
+//     should be deleted once it reaches a certain age to avoid leaving browsing
+//     history in the registry.
+//   - Indicating that a certificate is a Namecoin root certificate, and should
+//     be exempt from a Namecoin name constraint exclusion that is applied to all
+//     other root CA's.
 func applyMagic(certKey registry.Key) error {
 	// To satisfy the first example use case, we have to delete it before we
 	// create it, so that we make sure that the "last modified" metadata gets
