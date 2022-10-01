@@ -46,9 +46,9 @@ func regNotifyChangeKeyValue(key syscall.Handle, watchSubtree bool,
 		_p1 = 0
 	}
 
-	r0, _, _ := syscall.Syscall6(procRegNotifyChangeKeyValue.Addr(), 5,
+	r0, _, _ := syscall.SyscallN(procRegNotifyChangeKeyValue.Addr(),
 		uintptr(key), uintptr(_p0), uintptr(notifyFilter), uintptr(event),
-		uintptr(_p1), 0)
+		uintptr(_p1))
 	if r0 != 0 {
 		return syscall.Errno(r0)
 	}
