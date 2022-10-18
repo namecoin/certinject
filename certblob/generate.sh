@@ -13,7 +13,7 @@ shopt -s nullglob globstar
 
   echo "const ("
 
-  INITIALISM_SED_PROGRAM='s/(Ctl|Crl|Aia|Ca|Efs|Ie30|Md5|Ocsp|Sha1|Url)([^a-z]|$)/\U\1\2/g'
+  INITIALISM_SED_PROGRAM='s/(Ctl|Crl|Aia|Ca|Efs|Guid|Id|Ie30|Md5|Ocsp|Sha1|Url)([^a-z]|$)/\U\1\2/g'
   grep -E $'^#define CERT_.*PROP_ID +[0-9A-Z_]+($|\r)' wincrypt.h | sed 's/#define /\t/' | sed 's/_PROP_ID /_PROP_ID = /' | sed -E 's/(\s+|_)([A-Z])([A-Z]+)/\1\2\L\3/g' | sed 's/_//g' | sed -E 's/PropId( =|$)/PropID\1/g' | sed -E "$INITIALISM_SED_PROGRAM" | sed -E "$INITIALISM_SED_PROGRAM"
 
   echo ")"
